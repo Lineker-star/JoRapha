@@ -57,7 +57,7 @@ docs/             specs/, adr/, design/, assets/images/ (source photos used by t
 - All user-facing strings go through i18n keys (FR/EN at minimum) from `packages/i18n`. No hard-coded UI text.
 - No real patient data anywhere — synthetic data only — until the section 14 gates of the playbook pass.
 - Never read or write `.env*` files other than `.env.example`; never put secrets in code, prompts or commits.
-- Schema changes only through migration files in git, never through the Supabase MCP or the dashboard.
+- Schema changes only through migration files in git, applied with `supabase db push` (dev) or CI — never the dashboard, the Supabase MCP or ad-hoc SQL. Database conventions: `supabase/CLAUDE.md`.
 - One feature per branch (`feat/<module>-<short-name>`); plan first, wait for approval on anything touching security, clinical data or offline sync.
 
 ## Performance budget (PRD §10, low-cost Android reference device, p95)
@@ -73,7 +73,9 @@ pnpm --filter web dev   web only (http://localhost:3000/fr, /en)
 pnpm --filter patient start / pnpm --filter chw start   Expo dev servers
 pnpm lint | pnpm typecheck | pnpm test | pnpm build
 pnpm format             Prettier write
-pnpm db:types           regenerate packages/db-types from the local Supabase database
+pnpm db:start | db:stop | db:reset | db:lint | db:test   local Supabase stack (needs Docker; see supabase/README.md)
+pnpm db:types           regenerate packages/db-types (local stack, or SUPABASE_PROJECT_REF=<ref> for a hosted project)
+pnpm supabase <args>    any Supabase CLI command (CLI is a dev dependency)
 ```
 
 ## Definition of done

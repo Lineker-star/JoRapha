@@ -15,10 +15,16 @@
     "test": "turbo run test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:types": "pnpm --filter @jorapha/db-types run generate"
+    "db:types": "node packages/db-types/scripts/generate.mjs",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:lint": "supabase db lint --level warning",
+    "db:test": "supabase test db"
   },
   "devDependencies": {
     "prettier": "3.10.1",
+    "supabase": "3.3.0",
     "turbo": "2.11.13",
     "typescript": "6.0.3"
   }
