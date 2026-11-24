@@ -1,0 +1,25 @@
+@import 'tailwindcss';
+
+/* Mirrors @jorapha/ui tokens (Tailwind 4 reads tokens from CSS). Keep in sync with packages/ui/src/index.ts. */
+@theme {
+  --color-brand-50: #ecfdf7;
+  --color-brand-100: #d1faec;
+  --color-brand-500: #0f9f7a;
+  --color-brand-600: #0b8466;
+  --color-brand-700: #0a6a53;
+  --color-brand-900: #073d31;
+  --color-ink-900: #0f172a;
+  --color-ink-600: #475569;
+  --color-ink-400: #94a3b8;
+  --color-surface-muted: #f4f7f6;
+  --font-sans: ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: #ffffff;
+  color: var(--color-ink-900);
+}

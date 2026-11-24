@@ -4,7 +4,9 @@ import { defaultLocale, isLocale, locales, messages, resolveLocale } from './ind
 
 function keyPaths(obj: object, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) =>
-    v !== null && typeof v === 'object' ? keyPaths(v as object, `${prefix}${k}.`) : [`${prefix}${k}`],
+    v !== null && typeof v === 'object'
+      ? keyPaths(v as object, `${prefix}${k}.`)
+      : [`${prefix}${k}`],
   );
 }
 

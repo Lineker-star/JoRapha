@@ -11,3 +11,10 @@ catalog:
   typescript: 6.0.3
   vitest: 5.1.1
   eslint: 9.39.5
+
+# Dependency install scripts are denied unless listed true here (supply-chain hardening).
+# false = not needed: these packages ship prebuilt binaries as optional dependencies and their
+# scripts only verify them or build from source as a fallback.
+allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
