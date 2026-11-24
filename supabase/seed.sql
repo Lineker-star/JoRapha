@@ -1,0 +1,2 @@
+-- Synthetic data only. Never real patient data (CLAUDE.md).
+-- Populated from Phase 1 (Step 1.2) onwards.
