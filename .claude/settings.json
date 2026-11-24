@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./**/.env)",
+      "Read(./**/.env.local)",
+      "Read(./**/.env.*.local)",
+      "Read(./**/.env.development)",
+      "Read(./**/.env.staging)",
+      "Read(./**/.env.production)",
+      "Read(./**/.env.test)",
+      "Edit(./**/.env)",
+      "Edit(./**/.env.local)",
+      "Edit(./**/.env.*.local)",
+      "Edit(./**/.env.development)",
+      "Edit(./**/.env.staging)",
+      "Edit(./**/.env.production)",
+      "Bash(supabase db push --linked*)",
+      "Bash(npx supabase db push --linked*)",
+      "Bash(pnpm dlx supabase db push --linked*)",
+      "Bash(supabase db reset --linked*)",
+      "Bash(git push --force*)"
+    ]
+  }
+}
