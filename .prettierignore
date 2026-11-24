@@ -1,0 +1,11 @@
+node_modules
+pnpm-lock.yaml
+.next
+.turbo
+.expo
+dist
+build
+coverage
+docs/specs
+docs/JoRapha_Build_Playbook.md
+packages/db-types/src/database.types.ts
