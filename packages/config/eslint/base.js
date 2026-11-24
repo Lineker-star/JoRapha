@@ -13,6 +13,7 @@ export const ignores = {
     '**/.turbo/**',
     '**/coverage/**',
     '**/*.d.ts',
+    '**/scripts/*.mjs',
   ],
 };
 

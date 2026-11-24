@@ -10,8 +10,8 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "generate": "supabase gen types typescript --local --schema public > src/database.types.ts"
+    "test": "vitest run --fsModuleCachePath ./node_modules/.vitest-cache",
+    "generate": "node scripts/generate.mjs"
   },
   "devDependencies": {
     "@jorapha/config": "workspace:*",

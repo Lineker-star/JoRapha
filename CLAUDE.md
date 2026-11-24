@@ -15,15 +15,15 @@ platform support, platform administrator.
 
 ## Stack
 
-| Layer | Choice |
-| --- | --- |
-| Monorepo | pnpm workspaces + Turborepo, TypeScript strict (TS 6.0 — typescript-eslint does not support 7 yet) |
-| Web | Next.js (App Router) + Tailwind 4 + next-intl (fr default, en) — patient, clinician, facility, admin areas |
-| Mobile | Expo SDK 58 + Expo Router + NativeWind 4 (Tailwind 3.4) — `apps/patient`, `apps/chw` |
-| Backend | Supabase: Postgres (one schema per domain, PostGIS), RLS, SQL functions (RPC), Edge Functions (Deno), Auth, Storage, Queues, Cron |
-| Offline | PowerSync + SQLCipher; uploads go through the `sync-ingest` Edge Function |
-| Video | LiveKit (tokens minted server-side) |
-| Tests | Vitest (TS), pgTAP (database), Playwright (web), Maestro (mobile) |
+| Layer    | Choice                                                                                                                            |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Monorepo | pnpm workspaces + Turborepo, TypeScript strict (TS 6.0 — typescript-eslint does not support 7 yet)                                |
+| Web      | Next.js (App Router) + Tailwind 4 + next-intl (fr default, en) — patient, clinician, facility, admin areas                        |
+| Mobile   | Expo SDK 58 + Expo Router + NativeWind 4 (Tailwind 3.4) — `apps/patient`, `apps/chw`                                              |
+| Backend  | Supabase: Postgres (one schema per domain, PostGIS), RLS, SQL functions (RPC), Edge Functions (Deno), Auth, Storage, Queues, Cron |
+| Offline  | PowerSync + SQLCipher; uploads go through the `sync-ingest` Edge Function                                                         |
+| Video    | LiveKit (tokens minted server-side)                                                                                               |
+| Tests    | Vitest (TS), pgTAP (database), Playwright (web), Maestro (mobile)                                                                 |
 
 Architecture decisions live in `docs/adr/` (ADR-001 … ADR-010, see playbook §2).
 
