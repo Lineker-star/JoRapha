@@ -1,0 +1,54 @@
+{
+  "common": {
+    "appName": "JoRapha",
+    "tagline": "Connected healthcare for East, Adamawa and North Cameroon.",
+    "language": "Language",
+    "underConstruction": "This area is under construction.",
+    "backHome": "Back to home"
+  },
+  "locales": {
+    "fr": "Français",
+    "en": "English"
+  },
+  "home": {
+    "title": "Welcome to JoRapha",
+    "intro": "Patients, clinicians, facilities and community health workers, together on one platform.",
+    "chooseArea": "Choose your area",
+    "heroAlt": "Doctor in a hospital corridor"
+  },
+  "areas": {
+    "patient": {
+      "title": "Patient area",
+      "description": "Book appointments, view your record and your results.",
+      "imageAlt": "A clinician in consultation with a patient"
+    },
+    "clinician": {
+      "title": "Clinician area",
+      "description": "Manage availability, consult, document and refer.",
+      "imageAlt": "Doctor holding a stethoscope"
+    },
+    "facility": {
+      "title": "Facility area",
+      "description": "Manage your facility's profile, staff and services.",
+      "imageAlt": "Hospital room ready for a patient"
+    },
+    "admin": {
+      "title": "Admin console",
+      "description": "Configure the platform, users and policies.",
+      "imageAlt": "Clinician monitoring medical screens"
+    }
+  },
+  "mobile": {
+    "patient": {
+      "title": "Hello!",
+      "body": "Welcome to the JoRapha patient app. Care for you and your family, even offline.",
+      "imageAlt": "A smiling nurse with a mother and her newborn"
+    },
+    "chw": {
+      "title": "Hello, health worker!",
+      "body": "Welcome to the JoRapha community health worker app. Record your visits, even without a network.",
+      "imageAlt": "A clinician on a home visit with a tablet"
+    },
+    "switchLanguage": "Passer en français"
+  }
+}

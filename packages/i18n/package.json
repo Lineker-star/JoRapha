@@ -1,0 +1,23 @@
+{
+  "name": "@jorapha/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "FR/EN UI strings and locale utilities",
+  "exports": {
+    ".": "./src/index.ts",
+    "./locales/*.json": "./locales/*.json"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@jorapha/config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

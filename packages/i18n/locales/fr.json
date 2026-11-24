@@ -1,0 +1,54 @@
+{
+  "common": {
+    "appName": "JoRapha",
+    "tagline": "Des soins de santé connectés pour l'Est, l'Adamaoua et le Nord du Cameroun.",
+    "language": "Langue",
+    "underConstruction": "Cet espace est en cours de construction.",
+    "backHome": "Retour à l'accueil"
+  },
+  "locales": {
+    "fr": "Français",
+    "en": "English"
+  },
+  "home": {
+    "title": "Bienvenue sur JoRapha",
+    "intro": "Patients, soignants, établissements et agents de santé communautaire, réunis sur une même plateforme.",
+    "chooseArea": "Choisissez votre espace",
+    "heroAlt": "Médecin dans le couloir d'un hôpital"
+  },
+  "areas": {
+    "patient": {
+      "title": "Espace patient",
+      "description": "Prendre rendez-vous, consulter votre dossier et vos résultats.",
+      "imageAlt": "Une soignante en consultation avec une patiente"
+    },
+    "clinician": {
+      "title": "Espace soignant",
+      "description": "Gérer vos disponibilités, consulter, documenter et orienter.",
+      "imageAlt": "Médecin tenant un stéthoscope"
+    },
+    "facility": {
+      "title": "Espace établissement",
+      "description": "Gérer le profil, le personnel et les services de votre établissement.",
+      "imageAlt": "Chambre d'hôpital prête à accueillir un patient"
+    },
+    "admin": {
+      "title": "Console d'administration",
+      "description": "Configurer la plateforme, les utilisateurs et les politiques.",
+      "imageAlt": "Soignant surveillant des écrans médicaux"
+    }
+  },
+  "mobile": {
+    "patient": {
+      "title": "Bonjour !",
+      "body": "Bienvenue dans l'application patient JoRapha. Vos soins et ceux de votre famille, même hors connexion.",
+      "imageAlt": "Une infirmière souriante avec une mère et son nouveau-né"
+    },
+    "chw": {
+      "title": "Bonjour, agent de santé !",
+      "body": "Bienvenue dans l'application JoRapha pour les agents de santé communautaire. Enregistrez vos visites, même sans réseau.",
+      "imageAlt": "Un soignant en visite à domicile avec une tablette"
+    },
+    "switchLanguage": "Switch to English"
+  }
+}

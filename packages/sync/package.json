@@ -1,0 +1,22 @@
+{
+  "name": "@jorapha/sync",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PowerSync schema, upload connector and sync-state hooks",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@jorapha/config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

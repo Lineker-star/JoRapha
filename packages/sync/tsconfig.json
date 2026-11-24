@@ -1,0 +1,4 @@
+{
+  "extends": "@jorapha/config/tsconfig/library.json",
+  "include": ["src", "*.ts"]
+}
