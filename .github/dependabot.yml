@@ -1,0 +1,45 @@
+# Dependabot — weekly version updates. Security updates are separate (enable "Dependabot security
+# updates" in Settings → Code security; see docs/ops/branch-protection.md).
+version: 2
+updates:
+  - package-ecosystem: npm # covers the whole pnpm workspace via the root lockfile
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Africa/Douala
+    open-pull-requests-limit: 10
+    # Matches pnpm's minimumReleaseAge: never propose a release in its first days.
+    cooldown:
+      default-days: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Expo SDK pins these together; upgrade them only with an SDK upgrade (`expo install --fix`).
+      - dependency-name: react-native
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: 'expo*'
+        update-types: [version-update:semver-major]
+      - dependency-name: react
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major, version-update:semver-minor]
+    commit-message:
+      prefix: 'chore(deps)'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Africa/Douala
+    cooldown:
+      default-days: 3
+    groups:
+      actions-minor-and-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: 'chore(ci)'

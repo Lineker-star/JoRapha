@@ -1,0 +1,8 @@
+# Gitleaks config used by CI and the pre-commit hook. Uses the built-in rules (AWS, GitHub, Stripe,
+# private keys, JWTs, generic secrets…) with no exclusions.
+# Add an [[allowlists]] entry only for a value that is provably not a secret, and say why in a comment:
+# every exclusion is a place a real secret could hide.
+title = "JoRapha gitleaks config"
+
+[extend]
+useDefault = true

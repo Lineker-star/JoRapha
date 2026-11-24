@@ -10,6 +10,8 @@ export default [
   { ignores: ['next-env.d.ts'] },
   ...nextVitals,
   ...nextTs,
+  // Works whether ESLint runs inside apps/web or from the repo root (pre-commit lint-staged).
+  { settings: { next: { rootDir: ['./', 'apps/web/'] } } },
   sharedRules,
   noHardcodedText,
   prettier,

@@ -1,0 +1,13 @@
+# Semgrep: skip generated, vendored and non-code files. Source code is never ignored here.
+node_modules/
+.turbo/
+.next/
+.expo/
+dist/
+coverage/
+pnpm-lock.yaml
+packages/db-types/src/database.types.ts
+docs/specs/
+docs/assets/
+docs/JoRapha_Build_Playbook.md
+apps/web/AGENTS.md

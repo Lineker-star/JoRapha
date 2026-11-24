@@ -1,0 +1,6 @@
+# Code owners — required reviewers when "Require review from Code Owners" is on
+# (docs/ops/branch-protection.md). Later lines win.
+
+/supabase/migrations/ @Lineker-star
+/supabase/functions/  @Lineker-star
+/.github/             @Lineker-star

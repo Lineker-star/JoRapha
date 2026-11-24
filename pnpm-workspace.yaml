@@ -18,3 +18,4 @@ catalog:
 allowBuilds:
   '@parcel/watcher': false
   '@swc/core': false
+  lefthook: false # hooks are installed by the root "prepare" script instead

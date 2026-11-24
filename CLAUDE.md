@@ -58,6 +58,7 @@ docs/             specs/, adr/, design/, assets/images/ (source photos used by t
 - No real patient data anywhere — synthetic data only — until the section 14 gates of the playbook pass.
 - Never read or write `.env*` files other than `.env.example`; never put secrets in code, prompts or commits.
 - Schema changes only through migration files in git, applied with `supabase db push` (dev) or CI — never the dashboard, the Supabase MCP or ad-hoc SQL. Database conventions: `supabase/CLAUDE.md`.
+- Never bypass the pre-commit hook (`--no-verify`) or weaken a CI check to get green; fix the cause. Accepted dependency risks go in `osv-scanner.toml` with a reason and an expiry, and only with the owner's approval.
 - One feature per branch (`feat/<module>-<short-name>`); plan first, wait for approval on anything touching security, clinical data or offline sync.
 
 ## Performance budget (PRD §10, low-cost Android reference device, p95)

@@ -1,0 +1,13 @@
+# osv-scanner — accepted risks. Every entry needs a reason and an expiry (ignoreUntil);
+# after the date CI fails again so the decision is reviewed. Keep this list short.
+
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+ignoreUntil = 2027-01-31T00:00:00Z
+reason = """
+minimatch 10.2.6 ReDoS-style DoS via globparts amplification (CVSS 6.9). Pulled in only by
+@expo/fingerprint (Expo build tooling, latest 0.21.10 still depends on minimatch ^10.2.6); the fix is
+only in minimatch 11, a major version we cannot force under Expo SDK 58. It runs at build time on our
+own config globs, never on user input. Revisit when Expo ships a fixed @expo/fingerprint.
+Accepted 2026-11-24 (Step 0.3).
+"""

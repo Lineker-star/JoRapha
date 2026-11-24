@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "description": "Shared TypeScript and ESLint configuration",
+  "scripts": {
+    "lint": "eslint ."
+  },
   "exports": {
     "./tsconfig/base.json": "./tsconfig/base.json",
     "./tsconfig/library.json": "./tsconfig/library.json",

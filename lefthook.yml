@@ -1,0 +1,9 @@
+# Git hooks (installed by `pnpm install` via the root "prepare" script).
+# Bypassing with --no-verify is not allowed (CLAUDE.md); CI re-runs every check anyway.
+pre-commit:
+  piped: true # stop at the first failure: secrets are checked before anything is reformatted
+  commands:
+    1_gitleaks:
+      run: node scripts/gitleaks-staged.mjs
+    2_lint-staged:
+      run: pnpm exec lint-staged
