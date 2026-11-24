@@ -6,9 +6,18 @@ import { ignores, noHardcodedText, sharedRules } from './base.js';
 
 export default [
   ignores,
-  { ignores: ['metro.config.js', 'babel.config.js', 'tailwind.config.js', 'nativewind-env.d.ts'] },
+  {
+    ignores: [
+      'eslint.config.mjs',
+      'metro.config.js',
+      'babel.config.js',
+      'tailwind.config.js',
+      'nativewind-env.d.ts',
+    ],
+  },
   ...expoConfig,
-  sharedRules,
+  // eslint-config-expo registers @typescript-eslint only for TS files, so scope the shared rules the same way.
+  { files: ['**/*.ts', '**/*.tsx'], ...sharedRules },
   noHardcodedText,
   prettier,
 ];

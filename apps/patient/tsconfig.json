@@ -1,0 +1,5 @@
+{
+  "extends": "@jorapha/config/tsconfig/expo.json",
+  "include": ["app", "src", "*.ts", "nativewind-env.d.ts", "expo-env.d.ts", ".expo/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
