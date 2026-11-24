@@ -18,6 +18,10 @@
       "Bash(npx supabase db push --linked*)",
       "Bash(pnpm dlx supabase db push --linked*)",
       "Bash(supabase db reset --linked*)",
+      "Bash(*supabase db reset --remote*)",
+      "Bash(*supabase link --project-ref bqrcsazvrsyzspzpfgrb*)",
+      "Bash(*supabase*bqrcsazvrsyzspzpfgrb*)",
+      "Bash(*supabase*--include-seed*)",
       "Bash(git push --force*)"
     ]
   }

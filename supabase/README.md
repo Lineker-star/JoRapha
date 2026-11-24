@@ -66,8 +66,8 @@ pnpm supabase link --project-ref rdozfdblandlqixixczr # asks for the database pa
 Then, to apply new migrations to **dev**:
 
 ```sh
-pnpm supabase db push --dry-run   # shows which migrations would run
-pnpm supabase db push             # applies them; never pass --include-seed
+pnpm supabase db push --remote --dry-run   # shows which migrations would run
+pnpm supabase db push --remote             # applies them; never pass --include-seed
 SUPABASE_PROJECT_REF=rdozfdblandlqixixczr pnpm db:types   # types straight from dev, no Docker needed
 ```
 
@@ -76,6 +76,11 @@ PowerShell form of the last line: `$env:SUPABASE_PROJECT_REF='rdozfdblandlqixixc
 Rules:
 
 - `db push` only ever targets **dev** from a laptop. Staging and production are deployed by CI (Step 13.2).
+- CLI 3 targets the **local** stack by default; `--remote` means the linked project. The CLI labels a
+  project's main database "production" even for `jorapha-dev` — check the ref it prints
+  (`rdozfdblandlqixixczr`) before confirming.
+- Database connections use ports 5432/6543. Some VPNs block them (symptom: "Connection timed out" /
+  "terminated unexpectedly" after "Initialising login role"); disconnect the VPN and retry.
 - The `service_role` key and the database password are never written to any file in this repo, any
   prompt, or any chat. They live in your password manager and in Edge Function secrets only.
 - `config.toml` does not change the hosted project. Hosted auth settings (password length, MFA,
