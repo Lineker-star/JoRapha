@@ -23,7 +23,18 @@ Read the root `CLAUDE.md` first. These rules add to it for anything under `supab
   `grant select, insert on <s>.<t> to authenticated;` and the same for `service_role` if Edge Functions use it
   (`service_role` bypasses RLS but not missing grants). Never grant to `anon` unless the data is public
   reference data and a comment in the migration says so. Never `grant all`.
-- Functions are not executable by default (0002). Grant `execute` per function to the roles that call it.
+- Functions are not executable by default (0002, 0003 — any schema, any function created by `postgres`).
+  Grant `execute` per function to the roles that call it:
+  - RLS helper functions used inside policies (e.g. `has_role()`, `is_member_of_facility()`):
+    `grant execute … to authenticated` — policies call them with the caller's privileges; without the
+    grant every query on the table fails with 42501.
+  - The custom access-token hook: `grant execute … to supabase_auth_admin` only, and revoke from
+    `public, anon, authenticated` — without it sign-in breaks.
+  - RPCs exposed through PostgREST/GraphQL: grant only to the roles meant to call them.
+  - Trigger functions need no grant (firing a trigger does not check EXECUTE).
+  - After any new `create extension` or extension upgrade, check `pg_proc.proacl` of its functions and
+    grant explicitly where an API role needs them.
+- `service_role` keeps Supabase's default grants in `public` (0002 revokes only anon/authenticated).
 - No application tables, views or functions in `public`. Never add `extensions`, `pgmq`, `cron` or a domain
   schema to `[api].schemas` until all its tables have RLS and tests; never enable the dashboard toggle
   "Expose Queues via PostgREST". Queue and cron payloads carry ids only, never health data.
