@@ -22,7 +22,15 @@
       "Bash(*supabase link --project-ref bqrcsazvrsyzspzpfgrb*)",
       "Bash(*supabase*bqrcsazvrsyzspzpfgrb*)",
       "Bash(*supabase*--include-seed*)",
-      "Bash(git push --force*)"
+      "Bash(git push --force*)",
+      "PowerShell(*supabase db push --linked*)",
+      "PowerShell(*supabase db reset --linked*)",
+      "PowerShell(*supabase db reset --remote*)",
+      "PowerShell(*supabase link --project-ref bqrcsazvrsyzspzpfgrb*)",
+      "PowerShell(*supabase*bqrcsazvrsyzspzpfgrb*)",
+      "PowerShell(*supabase*--include-seed*)",
+      "PowerShell(*git push*--force*)",
+      "Bash(*git push*--force*)"
     ]
   }
 }
