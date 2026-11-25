@@ -42,13 +42,14 @@ select is(
   0,
   'anon has USAGE on no domain schema'
 );
+-- Since Step 1.2 authenticated may enter exactly the schemas whose tables have RLS; the rest stay closed.
 select is(
-  (select count(*)::int
+  (select array_agg(s order by s)
      from unnest(array['identity','patient','provider','scheduling','clinical','referral','lab',
                        'pharmacy','community','billing','content','audit','sync']) as s
     where has_schema_privilege('authenticated', s, 'USAGE')),
-  0,
-  'authenticated has USAGE on no domain schema'
+  array['audit','clinical','community','identity','patient','provider','sync'],
+  'authenticated has USAGE only on the domain schemas implemented with RLS (Step 1.2)'
 );
 select is(
   (select count(*)::int
@@ -59,13 +60,15 @@ select is(
   'neither anon nor authenticated can create objects in a domain schema'
 );
 
--- No tables yet in any domain schema (Step 0.2 constraint)
+-- Every table in a domain schema has RLS enabled AND forced (Step 1.2: no policy = no access)
 select is(
-  (select count(*)::int from pg_tables
-    where schemaname in ('identity','patient','provider','scheduling','clinical','referral','lab',
-                         'pharmacy','community','billing','content','audit','sync')),
+  (select count(*)::int from pg_class as c join pg_namespace as n on n.oid = c.relnamespace
+    where c.relkind in ('r', 'p')
+      and n.nspname in ('identity','patient','provider','scheduling','clinical','referral','lab',
+                        'pharmacy','community','billing','content','audit','sync')
+      and not (c.relrowsecurity and c.relforcerowsecurity)),
   0,
-  'domain schemas contain no tables yet'
+  'every domain table has row level security enabled and forced'
 );
 
 -- Seed data is clearly synthetic: every seeded user uses the reserved .test domain

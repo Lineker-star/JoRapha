@@ -11,8 +11,9 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// Keep in sync with supabase/migrations: public + the 13 domain schemas.
+// Keep in sync with supabase/migrations: public, the write API and the 13 domain schemas.
 const SCHEMAS = [
+  'api',
   'public',
   'identity',
   'patient',

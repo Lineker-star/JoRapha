@@ -1,6 +1,6 @@
 # JoRapha — Foundation ERD (Phase 1, Step 1.1)
 
-Status: **Draft for review** — no SQL until approved. Date: 2026-11-25.
+Status: **Implemented** in migrations 0005–0013 (Step 1.2, see §7). Date: 2026-11-25.
 Sources: Technical Architecture (TA) §5, §6, §7.1, §7.3, §8; PRD §5, §6, §7; BRS §7, §8; ADR-001…ADR-010.
 
 This document covers the 15 foundation entities requested, plus **seven supporting tables** that the
@@ -499,8 +499,7 @@ Table-by-table, the rows a non-administrator can see:
 
 ## 5. Open items before Step 1.2
 
-1. **`api` schema**: Step 1.2 puts SECURITY DEFINER write functions in an `api` schema, which migration 0001
-   did not create. Decide: add `api` in Step 1.2's first migration (recommended), or use per-domain schemas.
+1. ~~**`api` schema**~~ — resolved: created in 0005 together with a `private` schema for predicates (§7).
 2. **Identifier systems** in Cameroon (ADR-006 Q5) and the **legal basis codes** for caregiver authority and
    consent (ADR-004, counsel): code lists stay placeholders until answered.
 3. **Break-glass duration and review process**: clinical governance decision.
@@ -525,3 +524,25 @@ Table-by-table, the rows a non-administrator can see:
 
 **Waiting for your review.** Suggested reviewers before Step 1.2 (Playbook): the security-reviewer subagent
 and, for the clinical entities, a clinician.
+
+## 7. Implementation notes (Step 1.2, migrations 0005–0013)
+
+- **Schemas**: `api` (write RPCs, exposed) and `private` (trigger functions and RLS predicates, not exposed;
+  `authenticated` has USAGE only so policies can call the predicates granted to it).
+- **Writes**: clients have `SELECT` only. Writes go through `api.*` SECURITY DEFINER functions (`search_path = ''`,
+  input validated, caller authority checked, audit event written). Implemented now: `register_device`,
+  `revoke_device`, `grant_membership`, `end_membership`, `record_consent`, `withdraw_consent`, `break_glass`.
+  Patient registration and caregiver verification come with Step 2.2, provider onboarding with 2.3.
+- **Role checks read the tables, not the JWT**: `identity.has_role()` / `in_org()` query `identity.membership`, so
+  ending a membership removes access immediately (tested). The access-token hook still adds `app_roles` and
+  `app_org_ids` claims for the UI. On hosted projects the hook must be enabled in Auth → Hooks
+  (`identity.custom_access_token_hook`); `config.toml` enables it locally.
+- **Server time**: `private.stamp_row()` forces `created_at` / `updated_at` / `row_version` and keeps
+  `client_created_at` immutable; `audit.audit_event.occurred_at` is forced to `now()` (tested).
+- **Append-only**: `private.guard_immutable()` allows only listed columns to change (e.g. consent: `status`);
+  `private.forbid_delete()` blocks deletes on every foundation table, for every role.
+- **Directory exception**: active, verified organizations, locations, services, practitioners and practitioner
+  roles are readable by any signed-in user (public directory); unverified/inactive rows and all credentials are not.
+- **Break-glass**: 2 hours, reason ≥ 20 characters, audited — pending the clinical-governance decision (§5 item 3).
+- **Data API exposure** (`config.toml`): `api`, `identity`, `patient`, `provider`, `clinical`, `community`.
+  `audit` and `sync` are not exposed yet. Hosted projects need the same list set in the dashboard.
