@@ -77,7 +77,17 @@ jobs:
         run: supabase db reset
 
       - name: pgTAP tests
-        run: supabase test db
+        # Failed assertions (and their diagnostics) are emitted as ::error annotations so they show on the PR.
+        run: |
+          set +e
+          supabase test db > pgtap.txt 2>&1
+          rc=$?
+          set -e
+          cat pgtap.txt
+          grep -E '^(not ok|#)|Failed|Parse errors|ERROR' pgtap.txt | head -n 40 | while IFS= read -r line; do
+            echo "::error title=pgTAP::${line}"
+          done
+          exit "$rc"
 
       - name: Lint database
         run: supabase db lint --schema public,identity,patient,provider,scheduling,clinical,referral,lab,pharmacy,community,billing,content,audit,sync --level warning --fail-on error # extensions (PostGIS internals) excluded: third-party false positives
