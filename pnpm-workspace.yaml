@@ -9,7 +9,7 @@ catalog:
   '@types/react': 19.3.0
   '@types/node': 22.20.5
   typescript: 6.0.3
-  vitest: 5.1.1
+  vitest: 5.1.0
   eslint: 9.39.5
 
 # Dependency install scripts are denied unless listed true here (supply-chain hardening).
@@ -19,3 +19,9 @@ allowBuilds:
   '@parcel/watcher': false
   '@swc/core': false
   lefthook: false # hooks are installed by the root "prepare" script instead
+
+# Supply-chain hardening (enforced by Semgrep's package_managers rules in CI).
+minimumReleaseAge: 10080 # minutes = 7 days before a new release can be installed
+trustPolicy: no-downgrade # refuse a version whose publish provenance is weaker than earlier ones
+trustPolicyIgnoreAfter: 43200 # check versions published in the last 30 days (where takeovers happen); older ones predate the policy
+blockExoticSubdeps: true # transitive deps only from the registry, never git/tarball URLs

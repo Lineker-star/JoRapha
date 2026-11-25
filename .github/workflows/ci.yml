@@ -1,4 +1,4 @@
-# CI — blocks broken or unsafe code from reaching main (playbook Step 0.3).
+﻿# CI â€” blocks broken or unsafe code from reaching main (playbook Step 0.3).
 # Every job below is a required status check on main (docs/ops/branch-protection.md).
 # Actions are pinned to full commit SHAs; Dependabot keeps them current.
 name: CI
@@ -68,7 +68,7 @@ jobs:
 
       - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with:
-          version: 3.3.0 # same as the root devDependency
+          version: 3.2.0 # same as the root devDependency
 
       - name: Start Postgres
         run: supabase db start

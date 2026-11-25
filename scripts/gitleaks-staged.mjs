@@ -5,10 +5,8 @@ import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 function findGitleaks() {
-  const probe = spawnSync('gitleaks', ['version'], {
-    encoding: 'utf8',
-    shell: process.platform === 'win32',
-  });
+  // No shell: gitleaks is a native executable, found on PATH directly (gitleaks.exe on Windows).
+  const probe = spawnSync('gitleaks', ['version'], { encoding: 'utf8' });
   if (probe.status === 0) return 'gitleaks';
 
   // winget installs here and only adds it to PATH for shells started after the install.
@@ -47,7 +45,7 @@ const result = spawnSync(
     '--no-banner',
     '--verbose',
   ],
-  { stdio: 'inherit', shell: gitleaks === 'gitleaks' && process.platform === 'win32' },
+  { stdio: 'inherit' },
 );
 
 if (result.status !== 0) {
