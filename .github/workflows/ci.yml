@@ -80,7 +80,7 @@ jobs:
         run: supabase test db
 
       - name: Lint database
-        run: supabase db lint --level warning --fail-on error
+        run: supabase db lint --schema public,identity,patient,provider,scheduling,clinical,referral,lab,pharmacy,community,billing,content,audit,sync --level warning --fail-on error # extensions (PostGIS internals) excluded: third-party false positives
 
   gitleaks:
     name: Secrets (Gitleaks)
