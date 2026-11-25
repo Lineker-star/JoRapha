@@ -30,6 +30,6 @@
     "prettier": "3.10.1",
     "supabase": "3.2.0",
     "turbo": "2.11.12",
-    "typescript": "6.0.3"
+    "typescript": "7.0.2"
   }
 }
