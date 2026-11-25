@@ -1,4 +1,4 @@
-﻿# CI â€” blocks broken or unsafe code from reaching main (playbook Step 0.3).
+# CI â€” blocks broken or unsafe code from reaching main (playbook Step 0.3).
 # Every job below is a required status check on main (docs/ops/branch-protection.md).
 # Actions are pinned to full commit SHAs; Dependabot keeps them current.
 name: CI
