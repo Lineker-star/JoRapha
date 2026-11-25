@@ -145,8 +145,8 @@ select throws_ok($$update audit.audit_event set reason = 'x' where patient_id = 
   '42501', null, 'audit events cannot be changed');
 select throws_ok($$update clinical.care_relationship set basis = 'appointment' where id = '00000000-0000-4000-8000-a00000000001'$$,
   '42501', null, 'care relationship basis cannot be changed');
-select lives_ok($$update clinical.care_relationship set valid_to = now() + interval '2 days' where id = '00000000-0000-4000-8000-a00000000001'$$,
-  'care relationship validity can be changed');
+select lives_ok($$update clinical.care_relationship set valid_to = now() + interval '12 hours' where id = '00000000-0000-4000-8000-a00000000001'$$,
+  'care relationship validity can be shortened');
 
 -- ── 2. Owners can read their rows ───────────────────────────────────────────────────────────────
 

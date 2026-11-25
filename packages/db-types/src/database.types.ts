@@ -47,6 +47,7 @@ export type Database = {
           p_client_created_at?: string
           p_consent_id: string
           p_device_id?: string
+          p_evidence_object_path?: string
           p_grantor_related_person_id?: string
           p_legal_basis?: string
           p_locale?: string
@@ -210,6 +211,8 @@ export type Database = {
           patient_id: string
           practitioner_role_id: string
           reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           row_version: number
           status: string
           updated_at: string
@@ -228,6 +231,8 @@ export type Database = {
           patient_id: string
           practitioner_role_id: string
           reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           row_version?: number
           status?: string
           updated_at?: string
@@ -246,6 +251,8 @@ export type Database = {
           patient_id?: string
           practitioner_role_id?: string
           reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           row_version?: number
           status?: string
           updated_at?: string
@@ -947,6 +954,8 @@ export type Database = {
           registration_channel: string
           row_version: number
           status: string
+          status_changed_by: string | null
+          status_reason: string | null
           updated_at: string
         }
         Insert: {
@@ -964,6 +973,8 @@ export type Database = {
           registration_channel?: string
           row_version?: number
           status?: string
+          status_changed_by?: string | null
+          status_reason?: string | null
           updated_at?: string
         }
         Update: {
@@ -981,6 +992,8 @@ export type Database = {
           registration_channel?: string
           row_version?: number
           status?: string
+          status_changed_by?: string | null
+          status_reason?: string | null
           updated_at?: string
         }
         Relationships: [
