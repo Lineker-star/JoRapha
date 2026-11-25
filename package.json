@@ -19,7 +19,7 @@
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
-    "db:lint": "supabase db lint --level warning --fail-on error",
+    "db:lint": "supabase db lint --schema public,identity,patient,provider,scheduling,clinical,referral,lab,pharmacy,community,billing,content,audit,sync --level warning --fail-on error",
     "db:test": "supabase test db",
     "prepare": "lefthook install"
   },
