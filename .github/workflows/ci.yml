@@ -102,7 +102,9 @@ jobs:
           rm gitleaks gitleaks.tar.gz
 
       - name: Scan git history
-        run: gitleaks git --config .gitleaks.toml --redact --verbose --no-banner --exit-code 1
+        # HEAD = the PR merge commit and all its history. Without it gitleaks runs `git log --all` and
+        # also scans unrelated branches that fetch-depth 0 pulled in.
+        run: gitleaks git --config .gitleaks.toml --log-opts="HEAD" --redact --verbose --no-banner --exit-code 1
 
   semgrep:
     name: SAST (Semgrep)
@@ -117,14 +119,25 @@ jobs:
           persist-credentials: false
 
       - name: Scan
-        run: >-
-          semgrep scan
-          --config p/default
-          --config p/typescript
-          --config p/secrets
-          --error
-          --metrics off
-          --disable-version-check
+        # Findings (and scan errors) are emitted as ::error annotations so they show on the PR.
+        run: |
+          set +e
+          semgrep scan \
+            --config p/default \
+            --config p/typescript \
+            --config p/secrets \
+            --error \
+            --metrics off \
+            --disable-version-check \
+            --vim --output semgrep-findings.txt 2> semgrep-stderr.txt
+          rc=$?
+          set -e
+          while IFS= read -r line; do echo "::error title=Semgrep::${line}"; done < semgrep-findings.txt
+          if [ "$rc" -ne 0 ] && [ ! -s semgrep-findings.txt ]; then
+            tail -n 20 semgrep-stderr.txt | while IFS= read -r line; do echo "::error title=Semgrep error::${line}"; done
+          fi
+          cat semgrep-stderr.txt
+          exit "$rc"
 
   dependencies:
     name: Dependencies (osv-scanner)
