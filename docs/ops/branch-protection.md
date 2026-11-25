@@ -21,13 +21,15 @@ Tick these rules:
 
 - [x] **Restrict deletions**
 - [x] **Require linear history** (squash or rebase merges only; keeps `git log` readable)
-- [x] **Require signed commits** — _recommended_. Set up signing first (section 5), or you will not be able to merge.
+- [ ] **Require signed commits** — **off for now** (owner decision, 2026-11-25): commits are not signed yet, so it
+      would block every merge. Set up signing first (section 5), then turn it on.
 - [x] **Require a pull request before merging**
   - Required approvals: **0 while you work alone**, **1** as soon as a second developer joins
     (GitHub never lets an author approve their own PR, so 1 would block every PR you open).
   - [x] Dismiss stale pull request approvals when new commits are pushed
   - [ ] Require review from Code Owners — **turn on when a second reviewer exists** (see section 6)
-  - [x] Require approval of the most recent reviewable push
+  - [ ] Require approval of the most recent reviewable push — **off while you work alone** (owner decision,
+        2026-11-25): it needs someone other than the pusher to approve. Turn it on with code-owner review (section 6).
   - [x] Require conversation resolution before merging
   - Allowed merge methods: **Squash** (and Rebase if you like); untick Merge commits
 - [x] **Require status checks to pass**
@@ -96,7 +98,8 @@ use the same git config; they are signed too as long as the key is usable withou
 
 ## 6. When a second developer joins
 
-1. Ruleset `main-protection` → Required approvals **1**, tick **Require review from Code Owners**.
+1. Ruleset `main-protection` → Required approvals **1**, tick **Require review from Code Owners** and
+   **Require approval of the most recent reviewable push**.
 2. Add them to `.github/CODEOWNERS` for the areas they own. Changes to `supabase/migrations/`,
    `supabase/functions/` and `.github/` will then need **your** approval.
 
