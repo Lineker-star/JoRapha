@@ -38,7 +38,7 @@
     "@types/react": "catalog:",
     "babel-preset-expo": "~58.0.26",
     "eslint": "catalog:",
-    "tailwindcss": "3.4.19",
+    "tailwindcss": "4.3.5",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
