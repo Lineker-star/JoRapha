@@ -22,10 +22,23 @@ updates:
         update-types: [version-update:semver-major, version-update:semver-minor]
       - dependency-name: 'expo*'
         update-types: [version-update:semver-major]
+      # Expo SDK 58 pins react/react-dom to an exact version; change them only with the SDK.
       - dependency-name: react
-        update-types: [version-update:semver-major, version-update:semver-minor]
       - dependency-name: react-dom
-        update-types: [version-update:semver-major, version-update:semver-minor]
+      # 2.2.2 was published without the provenance attestation earlier releases carry (pnpm trustPolicy).
+      - dependency-name: lefthook
+        versions: ['2.2.2']
+      # Majors blocked by the toolchain (see CLAUDE.md "Stack"); revisit when the blocker is gone:
+      - dependency-name: typescript # typescript-eslint does not support TS 7 yet
+        update-types: [version-update:semver-major]
+      - dependency-name: eslint # eslint-config-next / plugins do not support ESLint 10 yet
+        update-types: [version-update:semver-major]
+      - dependency-name: '@eslint/js'
+        update-types: [version-update:semver-major]
+      - dependency-name: tailwindcss # mobile apps: NativeWind 4 requires Tailwind 3.4 (web already on 4)
+        update-types: [version-update:semver-major]
+      - dependency-name: '@types/node' # keep in step with the Node 22 runtime
+        update-types: [version-update:semver-major]
     commit-message:
       prefix: 'chore(deps)'
 
