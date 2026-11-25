@@ -10,9 +10,9 @@ updates:
       time: '06:00'
       timezone: Africa/Douala
     open-pull-requests-limit: 10
-    # Matches pnpm's minimumReleaseAge: never propose a release in its first days.
+    # Matches pnpm's minimumReleaseAge (7 days): never propose a release in its first week.
     cooldown:
-      default-days: 3
+      default-days: 7
     groups:
       minor-and-patch:
         update-types: [minor, patch]
@@ -37,7 +37,7 @@ updates:
       time: '06:00'
       timezone: Africa/Douala
     cooldown:
-      default-days: 3
+      default-days: 7
     groups:
       actions-minor-and-patch:
         update-types: [minor, patch]
