@@ -7,6 +7,8 @@
 // No shell redirection, so it behaves the same in PowerShell and WSL.
 import { spawnSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Keep in sync with supabase/migrations: public + the 13 domain schemas.
@@ -32,9 +34,13 @@ const projectRef = process.env.SUPABASE_PROJECT_REF?.trim();
 const source = projectRef ? ['--project-id', projectRef] : ['--local'];
 const args = ['gen', 'types', 'typescript', ...source, '--schema', SCHEMAS.join(',')];
 
-const result = spawnSync('supabase', args, {
+// Run the CLI's JS entry point with this Node binary: no shell, same on Windows, WSL and CI.
+const require = createRequire(import.meta.url);
+const cliPackage = require.resolve('supabase/package.json');
+const cli = join(dirname(cliPackage), require(cliPackage).bin.supabase);
+
+const result = spawnSync(process.execPath, [cli, ...args], {
   encoding: 'utf8',
-  shell: process.platform === 'win32', // resolves supabase.cmd from node_modules/.bin on Windows
   maxBuffer: 64 * 1024 * 1024,
 });
 
