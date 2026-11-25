@@ -17,14 +17,20 @@ updates:
       minor-and-patch:
         update-types: [minor, patch]
     ignore:
-      # Expo SDK pins these together; upgrade them only with an SDK upgrade (`expo install --fix`).
-      - dependency-name: react-native
-        update-types: [version-update:semver-major, version-update:semver-minor]
-      - dependency-name: 'expo*'
-        update-types: [version-update:semver-major]
-      # Expo SDK 58 pins react/react-dom to an exact version; change them only with the SDK.
+      # Expo SDK 58 manages these versions (expo/bundledNativeModules.json); change them only with an SDK
+      # upgrade (`npx expo install --fix`). Exact pins — no updates at all:
       - dependency-name: react
       - dependency-name: react-dom
+      - dependency-name: react-native
+      - dependency-name: react-native-reanimated
+      - dependency-name: react-native-worklets
+      # Tilde ranges — patches allowed, minor/major only with the SDK:
+      - dependency-name: 'expo*'
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: react-native-safe-area-context
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: react-native-screens
+        update-types: [version-update:semver-major, version-update:semver-minor]
       # 2.2.2 was published without the provenance attestation earlier releases carry (pnpm trustPolicy).
       - dependency-name: lefthook
         versions: ['2.2.2']
