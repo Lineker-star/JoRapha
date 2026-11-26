@@ -12,14 +12,6 @@ catalog:
   vitest: 5.1.1
   eslint: 9.39.5
 
-# Undeclared dependencies of third-party packages, made explicit so resolution never depends on hoisting.
-packageExtensions:
-  # nativewind/babel (react-native-css-interop/babel.js) loads this plugin by name without declaring it; the EAS
-  # Android build failed with "Cannot find module '@babel/plugin-transform-react-jsx'" (2026-11-26).
-  react-native-css-interop:
-    dependencies:
-      '@babel/plugin-transform-react-jsx': ^7.29.7
-
 # Dependency install scripts are denied unless listed true here (supply-chain hardening).
 # false = not needed: these packages ship prebuilt binaries as optional dependencies and their
 # scripts only verify them or build from source as a fallback.
