@@ -36,8 +36,10 @@ const config: ExpoConfig = {
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? '',
     supabasePublishableKey: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '',
     powersyncUrl: process.env.EXPO_PUBLIC_POWERSYNC_URL ?? '',
-    eas: process.env.EAS_PROJECT_ID ? { projectId: process.env.EAS_PROJECT_ID } : undefined,
+    // Public identifier of the EAS project (@rektech/jorapha-chw); not a secret.
+    eas: { projectId: 'd3481190-2f13-445d-ace0-e37d46beb30e' },
   },
+  owner: 'rektech',
 };
 
 export default config;
