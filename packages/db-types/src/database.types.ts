@@ -75,6 +75,10 @@ export type Database = {
         Args: { p_device_id: string; p_reason: string }
         Returns: undefined
       }
+      sync_household_batch: {
+        Args: { p_device_id: string; p_ops: Json }
+        Returns: Json
+      }
       withdraw_consent: {
         Args: {
           p_client_created_at?: string
@@ -376,6 +380,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          member_count: number | null
           name_or_head: string | null
           origin_device_id: string | null
           position: unknown
@@ -390,6 +395,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          member_count?: number | null
           name_or_head?: string | null
           origin_device_id?: string | null
           position?: unknown
@@ -404,6 +410,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          member_count?: number | null
           name_or_head?: string | null
           origin_device_id?: string | null
           position?: unknown
