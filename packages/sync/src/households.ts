@@ -70,6 +70,9 @@ export class UnsupportedOperationError extends Error {
   }
 }
 
+/** Every local write must set op_id (a fresh UUID) in the same statement; a write without it is a bug. */
+export class MissingOperationIdError extends UnsupportedOperationError {}
+
 /**
  * Maps a PowerSync CRUD entry to an ingest operation.
  * The idempotency key is derived from the device id and PowerSync's per-device clientId, so re-sending the
@@ -84,9 +87,13 @@ export function toIngestOperation(
   }
   const opData = entry.opData ?? {};
   const base = opData.base_row_version;
+  // The operation id is a UUID persisted with the row at write time, so it survives app kills, retries and a
+  // reset of PowerSync's local counter. The idempotency key is derived from it (never from clientId alone).
+  const opId = typeof opData.op_id === 'string' ? opData.op_id : null;
+  if (opId === null) throw new MissingOperationIdError(entry);
   return {
-    op_id: typeof opData.op_id === 'string' ? opData.op_id : ctx.newOperationId(),
-    idempotency_key: `${ctx.deviceId}:${entry.clientId}`,
+    op_id: opId,
+    idempotency_key: `${ctx.deviceId}:${opId}`,
     local_sequence: entry.clientId,
     schema_version: 1,
     op: entry.op === 'PUT' ? 'insert' : 'field_update',
@@ -115,6 +122,8 @@ export const KNOWN_REASON_CODES = [
   'CATCHMENT_CHANGE',
   'UNSUPPORTED_OP',
   'DEVICE_REVOKED',
+  'IDEMPOTENCY_MISMATCH',
+  'FORBIDDEN',
 ] as const;
 export type ReasonCode = (typeof KNOWN_REASON_CODES)[number];
 

@@ -69,7 +69,9 @@
       "CATCHMENT_CHANGE": "Catchment change: needs supervisor approval",
       "UNSUPPORTED_OP": "Unsupported operation",
       "DEVICE_REVOKED": "This device has been revoked",
-      "UNKNOWN": "Rejected by the server"
+      "UNKNOWN": "Rejected by the server",
+      "IDEMPOTENCY_MISMATCH": "Duplicate operation detected: needs review",
+      "FORBIDDEN": "Account not allowed: contact your supervisor"
     },
     "pendingNotice": "{{count}} record(s) pending: not yet received by the server.",
     "lastSync": "Last sync: {{time}}",
@@ -102,13 +104,16 @@
       "noCatchment": "No catchment is assigned to your account.",
       "signOut": "Sign out",
       "invalid": "Enter at least the name and the number of members (0 to 100).",
-      "memberCountValue": "Members: {{count}}"
+      "memberCountValue": "Members: {{count}}",
+      "pendingSignOut": "{{count}} record(s) not sent yet. Connect to the network and wait for sync before signing out."
     },
     "metrics": {
       "title": "Spike measurements",
       "localSave": "Last local save: {{ms}} ms",
-      "coldStart": "Start-up to list: {{ms}} ms"
+      "coldStart": "Start-up to list: {{ms}} ms",
+      "encryption": "Local encryption: {{version}}"
     },
-    "deviceRevoked": "This device has been revoked. Local data has been erased."
+    "deviceRevoked": "This device has been revoked. Local data has been erased.",
+    "encryptionMissing": "Local encryption is not active: the app refuses to start."
   }
 }

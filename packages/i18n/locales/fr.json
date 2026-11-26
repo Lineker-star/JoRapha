@@ -69,7 +69,9 @@
       "CATCHMENT_CHANGE": "Changement de zone : à valider par le superviseur",
       "UNSUPPORTED_OP": "Opération non prise en charge",
       "DEVICE_REVOKED": "Cet appareil a été révoqué",
-      "UNKNOWN": "Refusé par le serveur"
+      "UNKNOWN": "Refusé par le serveur",
+      "IDEMPOTENCY_MISMATCH": "Opération en double détectée : à vérifier",
+      "FORBIDDEN": "Compte non autorisé : contactez votre superviseur"
     },
     "pendingNotice": "{{count}} enregistrement(s) en attente : pas encore reçu(s) par le serveur.",
     "lastSync": "Dernière synchronisation : {{time}}",
@@ -102,13 +104,16 @@
       "noCatchment": "Aucune zone assignée à votre compte.",
       "signOut": "Se déconnecter",
       "invalid": "Renseignez au moins le nom et le nombre de membres (0 à 100).",
-      "memberCountValue": "Membres : {{count}}"
+      "memberCountValue": "Membres : {{count}}",
+      "pendingSignOut": "{{count}} enregistrement(s) pas encore envoyé(s). Connectez-vous au réseau et attendez la synchronisation avant de vous déconnecter."
     },
     "metrics": {
       "title": "Mesures du test",
       "localSave": "Dernier enregistrement local : {{ms}} ms",
-      "coldStart": "Démarrage jusqu’à la liste : {{ms}} ms"
+      "coldStart": "Démarrage jusqu’à la liste : {{ms}} ms",
+      "encryption": "Chiffrement local : {{version}}"
     },
-    "deviceRevoked": "Cet appareil a été révoqué. Les données locales ont été effacées."
+    "deviceRevoked": "Cet appareil a été révoqué. Les données locales ont été effacées.",
+    "encryptionMissing": "Chiffrement local inactif : l’application refuse de démarrer."
   }
 }

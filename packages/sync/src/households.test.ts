@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   type CrudEntryLike,
+  MissingOperationIdError,
   reasonKey,
   stateFromResult,
   toIngestOperation,
@@ -25,11 +26,13 @@ describe('toIngestOperation', () => {
         lng: 13.68,
         client_created_at: '2026-11-26T10:00:00Z',
         row_version: 3,
+        op_id: 'op-uuid-1',
         unrelated: 'dropped',
       },
     };
     const op = toIngestOperation(entry, ctx);
     expect(op).toMatchObject({
+      op_id: 'op-uuid-1',
       op: 'insert',
       entity_id: 'h-1',
       local_sequence: 7,
@@ -48,18 +51,31 @@ describe('toIngestOperation', () => {
     expect(op.data).not.toHaveProperty('row_version');
   });
 
-  it('derives a stable idempotency key from device and clientId (safe to resend after a crash)', () => {
+  it('derives the idempotency key from the persisted op_id, not from the local counter', () => {
     const entry: CrudEntryLike = {
       op: 'PUT',
       table: 'households',
       id: 'h-1',
       clientId: 42,
-      opData: {},
+      opData: { op_id: 'op-uuid-42' },
     };
-    expect(toIngestOperation(entry, ctx).idempotency_key).toBe('dev-1:42');
-    expect(toIngestOperation(entry, ctx).idempotency_key).toBe(
+    expect(toIngestOperation(entry, ctx).idempotency_key).toBe('dev-1:op-uuid-42');
+    // After a local reset the counter restarts; a new write with a new op_id gets a new key.
+    const afterReset: CrudEntryLike = {
+      ...entry,
+      id: 'h-2',
+      clientId: 42,
+      opData: { op_id: 'op-uuid-new' },
+    };
+    expect(toIngestOperation(afterReset, ctx).idempotency_key).not.toBe(
       toIngestOperation(entry, ctx).idempotency_key,
     );
+  });
+
+  it('refuses a write without op_id', () => {
+    expect(() =>
+      toIngestOperation({ op: 'PUT', table: 'households', id: 'h', clientId: 1, opData: {} }, ctx),
+    ).toThrow(MissingOperationIdError);
   });
 
   it('maps a PATCH to a field update carrying the base row version', () => {
@@ -68,7 +84,7 @@ describe('toIngestOperation', () => {
       table: 'households',
       id: 'h-1',
       clientId: 8,
-      opData: { member_count: 6, base_row_version: 2 },
+      opData: { member_count: 6, base_row_version: 2, op_id: 'op-uuid-8' },
     };
     expect(toIngestOperation(entry, ctx)).toMatchObject({
       op: 'field_update',

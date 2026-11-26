@@ -17,10 +17,13 @@ import * as Crypto from 'expo-crypto';
 import { config, syncIngestUrl } from '../config';
 import { supabase } from '../lib/supabase';
 
-export class DeviceRevokedError extends Error {}
+/** Anything that can run a statement: the database or an open write transaction. */
+interface Executor {
+  execute(sql: string, params?: unknown[]): Promise<unknown>;
+}
 
 export async function setStatus(
-  db: AbstractPowerSyncDatabase,
+  db: Executor,
   id: string,
   state: SyncState,
   reasonCode: string | null = null,
@@ -35,22 +38,39 @@ export async function setStatus(
   );
 }
 
+export interface ConnectorHooks {
+  /** Server confirmed the device is revoked: purge local data and sign out. */
+  onDeviceRevoked: () => void;
+  /** Server does not know this device (registration failed earlier): register again. */
+  registerDevice: () => Promise<void>;
+}
+
 /**
- * Uploads the local queue to supabase/functions/sync-ingest. Contract:
- * - network failure → throw (PowerSync retries with backoff; records go back to "pending");
- * - 403 DEVICE_REVOKED → throw DeviceRevokedError (the app purges local data);
- * - 200 → per-operation results; the batch is completed so rejected/conflict items do not block the queue,
- *   and their state stays visible (never shown as received).
+ * Uploads the local queue to supabase/functions/sync-ingest. A batch is completed (removed from the queue)
+ * ONLY when the server answered every operation in it; every other outcome keeps the queue and retries, so
+ * an acknowledged local record is never dropped by a server or network fault.
  */
 export class SupabaseConnector implements PowerSyncBackendConnector {
   constructor(
     private readonly deviceId: string,
-    private readonly onDeviceRevoked: () => void,
+    private readonly hooks: ConnectorHooks,
   ) {}
 
   async fetchCredentials(): Promise<PowerSyncCredentials | null> {
     const { data } = await supabase.auth.getSession();
     if (!data.session) return null;
+    // Download path: an idle revoked device must stop syncing too, not only on upload. Best effort when
+    // offline; the server-side gate for real data is session revocation (report §5).
+    const { data: device } = await supabase
+      .schema('identity')
+      .from('device_registration')
+      .select('trust_status')
+      .eq('id', this.deviceId)
+      .maybeSingle();
+    if (device?.trust_status === 'revoked') {
+      this.hooks.onDeviceRevoked();
+      return null;
+    }
     return { endpoint: config.powersyncUrl, token: data.session.access_token };
   }
 
@@ -79,13 +99,17 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
       return;
     }
 
-    for (const op of ops) await setStatus(db, op.entity_id, 'syncing');
+    const backToPending = async (reason: string | null = null) => {
+      for (const op of ops) await setStatus(db, op.entity_id, 'pending', reason);
+    };
 
     const { data } = await supabase.auth.getSession();
     if (!data.session) {
-      for (const op of ops) await setStatus(db, op.entity_id, 'pending');
+      await backToPending();
       throw new Error('not signed in');
     }
+
+    for (const op of ops) await setStatus(db, op.entity_id, 'syncing');
 
     let response: Response;
     try {
@@ -98,29 +122,36 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
         body: JSON.stringify({ device_id: this.deviceId, ops }),
       });
     } catch (networkError) {
-      for (const op of ops) await setStatus(db, op.entity_id, 'pending');
+      await backToPending();
       throw networkError;
     }
 
     if (response.status === 403) {
       const body = (await response.json().catch(() => ({}))) as { error?: string };
       if (body.error === 'DEVICE_REVOKED') {
-        this.onDeviceRevoked();
-        throw new DeviceRevokedError('DEVICE_REVOKED');
+        this.hooks.onDeviceRevoked();
+        throw new Error('DEVICE_REVOKED');
       }
-    }
-    if (response.status === 400) {
-      // The whole batch is malformed (client bug or app too old): reject it visibly instead of retrying forever.
-      for (const op of ops) await setStatus(db, op.entity_id, 'rejected', 'INVALID_PAYLOAD');
-      await batch.complete();
-      return;
+      if (body.error === 'DEVICE_UNKNOWN') {
+        await backToPending();
+        await this.hooks.registerDevice();
+        throw new Error('DEVICE_UNKNOWN: registered again, retrying');
+      }
+      await backToPending('FORBIDDEN');
+      throw new Error('FORBIDDEN');
     }
     if (!response.ok) {
-      for (const op of ops) await setStatus(db, op.entity_id, 'pending');
+      // 400 (client bug), 401, 503 or anything else: keep the queue, retry later.
+      await backToPending();
       throw new Error(`sync-ingest HTTP ${response.status}`);
     }
 
     const { results } = (await response.json()) as { results: IngestResult[] };
+    const answered = new Map(results.map((r) => [r.entity_id, r]));
+    if (results.length !== ops.length || ops.some((op) => !answered.has(op.entity_id))) {
+      await backToPending();
+      throw new Error('incomplete answer from sync-ingest; retrying');
+    }
     for (const result of results) {
       await setStatus(db, result.entity_id, stateFromResult(result), result.reason_code);
     }

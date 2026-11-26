@@ -13,11 +13,22 @@ import { openDatabase, purgeDatabase } from '../src/powersync/database';
 import { HouseholdsScreen } from '../src/screens/HouseholdsScreen';
 import { SignInScreen } from '../src/screens/SignInScreen';
 
+async function registerDevice(deviceId: string): Promise<void> {
+  const { error } = await supabase.schema('api').rpc('register_device', {
+    p_device_id: deviceId,
+    p_app: 'chw',
+    p_platform: Platform.OS === 'ios' ? 'ios' : 'android',
+    p_app_version: Constants.expoConfig?.version ?? null,
+  });
+  if (error) throw error;
+}
+
 export default function ChwHome() {
   const { t } = useTranslation();
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [db, setDb] = useState<PowerSyncDatabase | null>(null);
   const [revoked, setRevoked] = useState(false);
+  const [fatal, setFatal] = useState(false);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -25,6 +36,7 @@ export default function ChwHome() {
     return () => data.subscription.unsubscribe();
   }, []);
 
+  // Only a confirmed revocation from the server purges local data (never an unknown or unreachable device).
   const onDeviceRevoked = useCallback(() => {
     setRevoked(true);
     void purgeDatabase().then(() => supabase.auth.signOut());
@@ -35,21 +47,23 @@ export default function ChwHome() {
     let cancelled = false;
     void (async () => {
       const deviceId = await getDeviceId();
-      // Best effort: registration needs the network; offline sign-in from a cached session still works.
-      await supabase
-        .schema('api')
-        .rpc('register_device', {
-          p_device_id: deviceId,
-          p_app: 'chw',
-          p_platform: Platform.OS === 'ios' ? 'ios' : 'android',
-          p_app_version: Constants.expoConfig?.version ?? null,
-        })
-        .then(
-          () => undefined,
-          () => undefined,
-        );
-      const database = await openDatabase();
-      await database.connect(new SupabaseConnector(deviceId, onDeviceRevoked));
+      // Best effort: registration needs the network. If it fails, the first upload answers DEVICE_UNKNOWN and
+      // the connector registers again before retrying; nothing is purged.
+      await registerDevice(deviceId).catch(() => undefined);
+      let database: PowerSyncDatabase;
+      try {
+        database = await openDatabase();
+      } catch {
+        // Encryption inactive or key lost: refuse to run rather than store data unencrypted or lose the queue.
+        if (!cancelled) setFatal(true);
+        return;
+      }
+      await database.connect(
+        new SupabaseConnector(deviceId, {
+          onDeviceRevoked,
+          registerDevice: () => registerDevice(deviceId),
+        }),
+      );
       if (!cancelled) setDb(database);
     })();
     return () => {
@@ -63,6 +77,13 @@ export default function ChwHome() {
     await supabase.auth.signOut();
   }
 
+  if (fatal) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-white px-6">
+        <Text className="text-center text-lg text-red-800">{t('chw.encryptionMissing')}</Text>
+      </SafeAreaView>
+    );
+  }
   if (revoked && !session) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-white px-6">

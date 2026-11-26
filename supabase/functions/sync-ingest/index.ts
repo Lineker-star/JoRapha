@@ -1,10 +1,18 @@
 // sync-ingest — Step 1.4 offline spike (ADR-002). Receives one batch of offline operations from a device.
 //
 // 1. Verifies the caller's JWT with Supabase Auth (no service_role key is used for writes).
-// 2. Validates the batch shape with zod.
+// 2. Validates the envelope; each operation is validated on its own: an invalid one is rejected in the
+//    answer, the valid ones still go through (one bad record never costs the others).
 // 3. Calls api.sync_household_batch AS THE CALLER, so role, catchment, device and idempotency checks run in
 //    Postgres (migration 0015, tested by supabase/tests/0006_offline_spike.test.sql) in one transaction.
-// 4. Returns per-operation ack / reject / conflict with reason codes.
+// 4. Status codes the app relies on:
+//      200 per-operation results (applied / rejected / conflict + reason code)
+//      400 envelope malformed (client bug)            → the app keeps its queue
+//      401 not signed in
+//      403 { error: DEVICE_UNKNOWN }  → re-register the device, then retry
+//      403 { error: DEVICE_REVOKED }  → purge local data
+//      403 { error: FORBIDDEN }       → account not allowed (shown, queue kept)
+//      503 any other server error     → the app retries later; nothing is dropped
 //
 // Never logs payloads (they can contain personal data); logs only counts and reason codes.
 
@@ -41,18 +49,32 @@ const operation = z
     message: 'insert requires data.catchment_id',
   });
 
-const batch = z
+const envelope = z
   .object({
     device_id: uuid,
-    ops: z.array(operation).min(1).max(100),
+    ops: z.array(z.unknown()).min(1).max(100),
   })
   .strict();
+
+type Result = {
+  op_id: unknown;
+  entity_id: unknown;
+  state: 'applied' | 'rejected' | 'conflict';
+  reason_code: string | null;
+  row_version: number | null;
+};
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'content-type': 'application/json; charset=utf-8' },
   });
+}
+
+function field(value: unknown, key: string): unknown {
+  return typeof value === 'object' && value !== null
+    ? (value as Record<string, unknown>)[key]
+    : undefined;
 }
 
 Deno.serve(async (req) => {
@@ -66,7 +88,6 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // Verify the JWT with Supabase Auth (signature, expiry, revocation of the session).
   const { data: userData, error: userError } = await supabase.auth.getUser(authorization.slice(7));
   if (userError || !userData.user) return json(401, { error: 'UNAUTHENTICATED' });
 
@@ -77,30 +98,62 @@ Deno.serve(async (req) => {
     return json(400, { error: 'INVALID_JSON' });
   }
 
-  const parsed = batch.safeParse(body);
+  const parsed = envelope.safeParse(body);
   if (!parsed.success) {
-    // Field paths only, never values.
     return json(400, {
-      error: 'INVALID_PAYLOAD',
+      error: 'INVALID_ENVELOPE',
       issues: parsed.error.issues.map((i) => ({ path: i.path.join('.'), code: i.code })),
     });
   }
 
-  const { data, error } = await supabase
-    .schema('api')
-    .rpc('sync_household_batch', { p_device_id: parsed.data.device_id, p_ops: parsed.data.ops });
+  // Validate each operation on its own; remember positions so the answer keeps the device's order.
+  const results: (Result | null)[] = parsed.data.ops.map(() => null);
+  const valid: { index: number; op: z.infer<typeof operation> }[] = [];
+  parsed.data.ops.forEach((raw, index) => {
+    const op = operation.safeParse(raw);
+    if (op.success) valid.push({ index, op: op.data });
+    else
+      results[index] = {
+        op_id: field(raw, 'op_id') ?? null,
+        entity_id: field(raw, 'entity_id') ?? null,
+        state: 'rejected',
+        reason_code: 'INVALID_PAYLOAD',
+        row_version: null,
+      };
+  });
 
-  if (error) {
-    const reason = error.message.includes('DEVICE_REVOKED') ? 'DEVICE_REVOKED' : 'REJECTED';
-    console.warn(`sync-ingest: batch refused (${reason}, code ${error.code})`);
-    return json(error.code === '42501' ? 403 : 400, { error: reason });
+  if (valid.length > 0) {
+    const { data, error } = await supabase.schema('api').rpc('sync_household_batch', {
+      p_device_id: parsed.data.device_id,
+      p_ops: valid.map((v) => v.op),
+    });
+
+    if (error) {
+      if (error.code === '42501') {
+        const reason = error.message.includes('DEVICE_REVOKED')
+          ? 'DEVICE_REVOKED'
+          : error.message.includes('DEVICE_UNKNOWN')
+            ? 'DEVICE_UNKNOWN'
+            : 'FORBIDDEN';
+        console.warn(`sync-ingest: batch refused (${reason})`);
+        return json(403, { error: reason });
+      }
+      if (error.code === '22023') return json(400, { error: 'INVALID_ENVELOPE' });
+      console.error(`sync-ingest: database error ${error.code ?? 'unknown'}; client will retry`);
+      return json(503, { error: 'RETRY_LATER' });
+    }
+
+    const serverResults = (data as { results: Result[] }).results;
+    valid.forEach((v, i) => {
+      results[v.index] = serverResults[i] ?? null;
+    });
   }
 
-  const results = (data as { results: { state: string }[] }).results;
-  const counts = results.reduce<Record<string, number>>((acc, r) => {
+  const final = results.filter((r): r is Result => r !== null);
+  const counts = final.reduce<Record<string, number>>((acc, r) => {
     acc[r.state] = (acc[r.state] ?? 0) + 1;
     return acc;
   }, {});
-  console.log(`sync-ingest: ${results.length} ops ${JSON.stringify(counts)}`);
-  return json(200, data);
+  console.log(`sync-ingest: ${final.length} ops ${JSON.stringify(counts)}`);
+  return json(200, { results: final });
 });

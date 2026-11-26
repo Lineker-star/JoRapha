@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { markListVisible } from '../metrics';
 import { setStatus } from '../powersync/connector';
+import { getCipherVersion } from '../powersync/database';
 
 type Row = {
   id: string;
@@ -36,10 +37,16 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
   const { data: catchments } = useQuery<{ id: string; name: string }>(
     'SELECT id, name FROM catchments ORDER BY name',
   );
-  // Synced rows default to "synced"; local writes carry their own state.
+  // A row still in PowerSync's upload queue (ps_crud) is never shown as synced, whatever its status row says;
+  // only rows the server sent us (not in the queue, no status) default to "synced".
   const { data: rows } = useQuery<Row>(
     `SELECT h.id, h.name_or_head, h.village, h.member_count, h.lat,
-            coalesce(s.state, 'synced') AS state, s.reason_code
+            CASE
+              WHEN EXISTS (SELECT 1 FROM ps_crud c WHERE json_extract(c.data, '$.id') = h.id)
+                THEN CASE WHEN s.state IN ('syncing', 'rejected', 'conflict') THEN s.state ELSE 'pending' END
+              ELSE coalesce(s.state, 'synced')
+            END AS state,
+            s.reason_code
        FROM households h LEFT JOIN household_sync_status s ON s.id = h.id
      UNION ALL
      SELECT s.id, s.label, NULL, NULL, NULL, s.state, s.reason_code
@@ -58,6 +65,18 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
   const [saveMs, setSaveMs] = useState<number | null>(null);
   // Measured once, when the list screen first renders.
   const [coldStartMs] = useState<number>(() => markListVisible());
+  const { data: queue } = useQuery<{ n: number }>('SELECT count(*) AS n FROM ps_crud');
+  const queued = queue[0]?.n ?? 0;
+  const [signOutBlocked, setSignOutBlocked] = useState(false);
+
+  function requestSignOut() {
+    // Signing out erases the local database: never while writes are still waiting for the server.
+    if (queued > 0) {
+      setSignOutBlocked(true);
+      return;
+    }
+    onSignOut();
+  }
 
   async function captureGps() {
     setGpsFailed(false);
@@ -102,8 +121,9 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
           Crypto.randomUUID(),
         ],
       );
+      // Same transaction: a record can never exist locally without its "pending" state.
+      await setStatus(tx, id, 'pending', null, name.trim());
     });
-    await setStatus(db, id, 'pending', null, name.trim());
     setSaveMs(Math.round(performance.now() - started));
     setName('');
     setVillage('');
@@ -127,12 +147,17 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
               </Text>
               <Pressable
                 accessibilityRole="button"
-                onPress={onSignOut}
+                onPress={requestSignOut}
                 className="min-h-12 justify-center px-2"
               >
                 <Text className="text-brand-700">{t('chw.households.signOut')}</Text>
               </Pressable>
             </View>
+            {signOutBlocked && queued > 0 ? (
+              <Text className="rounded-lg bg-red-50 p-3 text-red-900">
+                {t('chw.households.pendingSignOut', { count: queued })}
+              </Text>
+            ) : null}
             <Text className="text-ink-600">
               {status.connected ? t('sync.online') : t('sync.offline')}
             </Text>
@@ -220,6 +245,9 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
               ) : null}
               <Text className="text-ink-700">
                 {t('chw.metrics.coldStart', { ms: coldStartMs })}
+              </Text>
+              <Text className="text-ink-700">
+                {t('chw.metrics.encryption', { version: getCipherVersion() ?? '?' })}
               </Text>
             </View>
             {rows.length === 0 ? (
