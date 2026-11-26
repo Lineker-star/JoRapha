@@ -31,5 +31,8 @@
     "supabase": "3.2.0",
     "turbo": "2.11.12",
     "typescript": "6.0.3"
+  },
+  "op-sqlite": {
+    "sqlcipher": true
   }
 }

@@ -14,13 +14,21 @@
   },
   "dependencies": {
     "@jorapha/i18n": "workspace:*",
+    "@jorapha/sync": "workspace:*",
     "@jorapha/ui": "workspace:*",
+    "@op-engineering/op-sqlite": "18.2.5",
+    "@powersync/react-native": "2.4.1",
+    "@supabase/supabase-js": "2.119.1",
     "expo": "58.0.26",
     "expo-constants": "~58.0.16",
+    "expo-crypto": "58.0.8",
+    "expo-dev-client": "58.0.21",
     "expo-image": "~58.0.18",
     "expo-linking": "~58.0.17",
     "expo-localization": "~58.0.5",
+    "expo-location": "58.0.22",
     "expo-router": "~58.0.32",
+    "expo-secure-store": "58.0.3",
     "expo-status-bar": "~58.0.5",
     "i18next": "27.1.5",
     "nativewind": "4.2.7",
@@ -41,5 +49,8 @@
     "tailwindcss": "3.4.19",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "op-sqlite": {
+    "sqlcipher": true
   }
 }
