@@ -50,5 +50,65 @@
       "imageAlt": "Un soignant en visite à domicile avec une tablette"
     },
     "switchLanguage": "Switch to English"
+  },
+  "sync": {
+    "state": {
+      "pending": "En attente",
+      "syncing": "Synchronisation…",
+      "synced": "Synchronisé",
+      "rejected": "Refusé",
+      "conflict": "Conflit"
+    },
+    "reason": {
+      "NOT_IN_CATCHMENT": "Hors de votre zone de responsabilité",
+      "INVALID_PAYLOAD": "Données invalides",
+      "UNSUPPORTED_SCHEMA_VERSION": "Version de l’application à mettre à jour",
+      "ID_EXISTS": "Cet enregistrement existe déjà",
+      "NOT_FOUND": "Enregistrement introuvable sur le serveur",
+      "STALE_VERSION": "Modifié ailleurs entre-temps : à vérifier",
+      "CATCHMENT_CHANGE": "Changement de zone : à valider par le superviseur",
+      "UNSUPPORTED_OP": "Opération non prise en charge",
+      "DEVICE_REVOKED": "Cet appareil a été révoqué",
+      "UNKNOWN": "Refusé par le serveur"
+    },
+    "pendingNotice": "{{count}} enregistrement(s) en attente : pas encore reçu(s) par le serveur.",
+    "lastSync": "Dernière synchronisation : {{time}}",
+    "never": "jamais",
+    "syncNow": "Synchroniser maintenant",
+    "offline": "Hors connexion",
+    "online": "En ligne"
+  },
+  "chw": {
+    "signIn": {
+      "title": "Connexion agent de santé",
+      "email": "Adresse e-mail",
+      "password": "Mot de passe",
+      "submit": "Se connecter",
+      "error": "Connexion impossible. Vérifiez vos identifiants et le réseau.",
+      "firstSignInNeedsNetwork": "La première connexion nécessite le réseau."
+    },
+    "households": {
+      "title": "Ménages",
+      "add": "Nouveau ménage",
+      "name": "Nom ou chef de ménage",
+      "village": "Village / quartier",
+      "memberCount": "Nombre de membres",
+      "catchment": "Zone",
+      "captureGps": "Relever la position GPS",
+      "gpsCaptured": "Position relevée",
+      "gpsUnavailable": "Position indisponible",
+      "save": "Enregistrer",
+      "empty": "Aucun ménage pour l’instant.",
+      "noCatchment": "Aucune zone assignée à votre compte.",
+      "signOut": "Se déconnecter",
+      "invalid": "Renseignez au moins le nom et le nombre de membres (0 à 100).",
+      "memberCountValue": "Membres : {{count}}"
+    },
+    "metrics": {
+      "title": "Mesures du test",
+      "localSave": "Dernier enregistrement local : {{ms}} ms",
+      "coldStart": "Démarrage jusqu’à la liste : {{ms}} ms"
+    },
+    "deviceRevoked": "Cet appareil a été révoqué. Les données locales ont été effacées."
   }
 }

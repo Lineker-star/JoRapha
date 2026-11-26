@@ -1,40 +1,87 @@
-import { Image } from 'expo-image';
+import { PowerSyncContext, type PowerSyncDatabase } from '@powersync/react-native';
+import type { Session } from '@supabase/supabase-js';
+import Constants from 'expo-constants';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const helloImage = require('../assets/images/hello.webp');
+import { getDeviceId } from '../src/lib/deviceIdentity';
+import { supabase } from '../src/lib/supabase';
+import { SupabaseConnector } from '../src/powersync/connector';
+import { openDatabase, purgeDatabase } from '../src/powersync/database';
+import { HouseholdsScreen } from '../src/screens/HouseholdsScreen';
+import { SignInScreen } from '../src/screens/SignInScreen';
 
-export default function HelloScreen() {
-  const { t, i18n } = useTranslation();
-  const nextLanguage = i18n.language === 'fr' ? 'en' : 'fr';
+export default function ChwHome() {
+  const { t } = useTranslation();
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [db, setDb] = useState<PowerSyncDatabase | null>(null);
+  const [revoked, setRevoked] = useState(false);
+
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  const onDeviceRevoked = useCallback(() => {
+    setRevoked(true);
+    void purgeDatabase().then(() => supabase.auth.signOut());
+  }, []);
+
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    void (async () => {
+      const deviceId = await getDeviceId();
+      // Best effort: registration needs the network; offline sign-in from a cached session still works.
+      await supabase
+        .schema('api')
+        .rpc('register_device', {
+          p_device_id: deviceId,
+          p_app: 'chw',
+          p_platform: Platform.OS === 'ios' ? 'ios' : 'android',
+          p_app_version: Constants.expoConfig?.version ?? null,
+        })
+        .then(
+          () => undefined,
+          () => undefined,
+        );
+      const database = await openDatabase();
+      await database.connect(new SupabaseConnector(deviceId, onDeviceRevoked));
+      if (!cancelled) setDb(database);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session, onDeviceRevoked]);
+
+  async function signOut() {
+    await purgeDatabase();
+    setDb(null);
+    await supabase.auth.signOut();
+  }
+
+  if (revoked && !session) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-white px-6">
+        <Text className="text-center text-lg text-ink-900">{t('chw.deviceRevoked')}</Text>
+      </SafeAreaView>
+    );
+  }
+  if (session === undefined || (session && !db)) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator />
+      </View>
+    );
+  }
+  if (!session || !db) return <SignInScreen />;
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView contentContainerClassName="pb-10">
-        <Image
-          source={helloImage}
-          accessibilityLabel={t('mobile.chw.imageAlt')}
-          contentFit="cover"
-          style={{ width: '100%', aspectRatio: 3 / 2 }}
-        />
-        <View className="gap-4 px-6 pt-6">
-          <Text className="text-sm font-semibold uppercase tracking-widest text-brand-700">
-            {t('common.appName')}
-          </Text>
-          <Text accessibilityRole="header" className="text-3xl font-bold text-ink-900">
-            {t('mobile.chw.title')}
-          </Text>
-          <Text className="text-lg leading-7 text-ink-600">{t('mobile.chw.body')}</Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => void i18n.changeLanguage(nextLanguage)}
-            className="mt-4 min-h-12 items-center justify-center rounded-xl bg-brand-600 px-5 active:bg-brand-700"
-          >
-            <Text className="text-base font-semibold text-white">{t('mobile.switchLanguage')}</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    <PowerSyncContext.Provider value={db}>
+      <HouseholdsScreen onSignOut={() => void signOut()} />
+    </PowerSyncContext.Provider>
   );
 }

@@ -1,3 +1,4 @@
+import '../src/metrics';
 import '../global.css';
 
 import { Stack } from 'expo-router';

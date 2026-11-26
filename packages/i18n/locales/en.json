@@ -50,5 +50,65 @@
       "imageAlt": "A clinician on a home visit with a tablet"
     },
     "switchLanguage": "Passer en français"
+  },
+  "sync": {
+    "state": {
+      "pending": "Pending",
+      "syncing": "Syncing…",
+      "synced": "Synced",
+      "rejected": "Rejected",
+      "conflict": "Conflict"
+    },
+    "reason": {
+      "NOT_IN_CATCHMENT": "Outside your catchment",
+      "INVALID_PAYLOAD": "Invalid data",
+      "UNSUPPORTED_SCHEMA_VERSION": "Please update the app",
+      "ID_EXISTS": "This record already exists",
+      "NOT_FOUND": "Record not found on the server",
+      "STALE_VERSION": "Changed elsewhere in the meantime: needs review",
+      "CATCHMENT_CHANGE": "Catchment change: needs supervisor approval",
+      "UNSUPPORTED_OP": "Unsupported operation",
+      "DEVICE_REVOKED": "This device has been revoked",
+      "UNKNOWN": "Rejected by the server"
+    },
+    "pendingNotice": "{{count}} record(s) pending: not yet received by the server.",
+    "lastSync": "Last sync: {{time}}",
+    "never": "never",
+    "syncNow": "Sync now",
+    "offline": "Offline",
+    "online": "Online"
+  },
+  "chw": {
+    "signIn": {
+      "title": "Health worker sign-in",
+      "email": "Email address",
+      "password": "Password",
+      "submit": "Sign in",
+      "error": "Could not sign in. Check your details and the network.",
+      "firstSignInNeedsNetwork": "The first sign-in needs a network connection."
+    },
+    "households": {
+      "title": "Households",
+      "add": "New household",
+      "name": "Name or head of household",
+      "village": "Village / quarter",
+      "memberCount": "Number of members",
+      "catchment": "Catchment",
+      "captureGps": "Capture GPS position",
+      "gpsCaptured": "Position captured",
+      "gpsUnavailable": "Position unavailable",
+      "save": "Save",
+      "empty": "No households yet.",
+      "noCatchment": "No catchment is assigned to your account.",
+      "signOut": "Sign out",
+      "invalid": "Enter at least the name and the number of members (0 to 100).",
+      "memberCountValue": "Members: {{count}}"
+    },
+    "metrics": {
+      "title": "Spike measurements",
+      "localSave": "Last local save: {{ms}} ms",
+      "coldStart": "Start-up to list: {{ms}} ms"
+    },
+    "deviceRevoked": "This device has been revoked. Local data has been erased."
   }
 }

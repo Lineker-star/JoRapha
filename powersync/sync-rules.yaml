@@ -1,0 +1,21 @@
+# PowerSync sync rules — Step 1.4 offline spike (ADR-002). Paste into the PowerSync Cloud dashboard
+# (instance → Sync Rules) and deploy. Source of truth is this file.
+#
+# A CHW downloads only the catchments they are actively assigned to, and the active households in them.
+# request.user_id() is the `sub` of the Supabase JWT (PowerSync instance configured with Supabase Auth).
+#
+# Spike limitation: parameter queries cannot compare valid_from/valid_to with the current time or check the
+# membership role, so downloads are scoped by assignment status only. Writes are still fully checked by
+# api.sync_household_batch (role, validity, organization status). Revisit with PowerSync Sync Streams.
+bucket_definitions:
+  chw_catchment:
+    parameters: >-
+      SELECT catchment_id FROM community.chw_assignment
+      WHERE user_account_id = request.user_id() AND status = 'active'
+    data:
+      - SELECT id, name FROM community.catchment AS catchments WHERE id = bucket.catchment_id AND status = 'active'
+      - >-
+        SELECT id, catchment_id, name_or_head, village, ST_Y(position) AS lat, ST_X(position) AS lng,
+               member_count, row_version, client_created_at
+        FROM community.household AS households
+        WHERE catchment_id = bucket.catchment_id AND status = 'active'
