@@ -28,13 +28,15 @@ reviewer — 3 should-fixes (download scope, idempotency mismatch, error mapping
 
 ## 2. Automated results
 
-| Check                                                                                                                                                                                                                                                                                                             | Result                        |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| `packages/sync` unit tests (mapping, op_id-based idempotency key, missing op_id refused, states, reason codes)                                                                                                                                                                                                    | 8 / 8 pass                    |
-| `apps/chw` typecheck, lint, i18n parity                                                                                                                                                                                                                                                                           | pass                          |
-| Android JS bundle (`expo export`)                                                                                                                                                                                                                                                                                 | builds (5 MB Hermes bytecode) |
-| `expo install --check` (SDK 58 compatibility)                                                                                                                                                                                                                                                                     | up to date                    |
-| pgTAP `supabase/tests/0006_offline_spike.test.sql` (29 assertions: expired-assignment job, mixed batch incl. bad GPS, replay, same key with different payload, foreign operation id, conflicts, catchment move, other catchment update, null coordinates, revoked / unknown / foreign device, wrong device clock) | **not yet run** — §3 step 1   |
+| Check                                                                                                                                                                                                                                                                                                             | Result                                         |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `packages/sync` unit tests (mapping, op_id-based idempotency key, missing op_id refused, states, reason codes)                                                                                                                                                                                                    | 8 / 8 pass                                     |
+| `apps/chw` typecheck, lint, i18n parity                                                                                                                                                                                                                                                                           | pass                                           |
+| Android JS bundle (`expo export`)                                                                                                                                                                                                                                                                                 | builds (5 MB Hermes bytecode)                  |
+| `expo install --check` (SDK 58 compatibility)                                                                                                                                                                                                                                                                     | up to date                                     |
+| pgTAP `supabase/tests/0006_offline_spike.test.sql` (29 assertions: expired-assignment job, mixed batch incl. bad GPS, replay, same key with different payload, foreign operation id, conflicts, catchment move, other catchment update, null coordinates, revoked / unknown / foreign device, wrong device clock) | 29 / 29 pass (CI fresh DB and dev, 2026-11-26) |
+| pgTAP `supabase/tests/0007_powersync_least_privilege.test.sql` (14 assertions: publication limited to 3 tables, integration role stripped to 3 tables, connection cap, function not callable by API roles)                                                                                                        | 14 / 14 pass (dev, 2026-11-26)                 |
+| All pgTAP files 0001–0006 against dev (rolled back)                                                                                                                                                                                                                                                               | 278 / 278 pass                                 |
 
 ## 3. Setup (owner steps, then Claude)
 
@@ -61,6 +63,22 @@ reviewer — 3 should-fixes (download scope, idempotency mismatch, error mapping
       times). Install the APK on the test phone from the link EAS prints.
 4. **Phone:** the cheapest Android phone available in Bertoua, not an emulator. Record model, Android version,
    RAM, free storage and battery level in §4.
+
+### 3.5 What happened during setup (2026-11-26)
+
+- `0015` and `0016` applied to dev; `sync-ingest` deployed (unauthenticated calls answer 401); synthetic
+  account `spike.chw1@jorapha.test` assigned to "Spike catchment Bertoua-Test (synthetic)" via
+  `supabase/spike/dev_fixtures.sql`; EAS project `@rektech/jorapha-chw` created, Supabase URL and publishable key
+  set as EAS variables (environment `development`).
+- **Finding:** PowerSync's Supabase dashboard integration did not use `powersync_role`. It created its own login
+  role (`powersync_<id>`) with BYPASSRLS, SELECT on **every** table (patient, clinical, audit, sync, cron) and USAGE
+  on every domain schema, and created the `powersync` publication with every table before `0015` ran, so
+  `0015`'s three-table publication was skipped. Data on dev is synthetic, so nothing real was exposed. Owner
+  decision: restrict in place. Migration `0016` limits the publication to the three spike tables and strips any
+  `powersync_*` role to USAGE on `community` + SELECT on the three tables, 5 connections, re-applied every
+  30 minutes. Verified on dev after the push. `powersync_role` (0015) stays unused and cannot log in.
+- **Gate before staging/production:** never use the PowerSync dashboard's automatic Supabase setup there; connect
+  with a role created by migrations, and check the publication and role grants after connecting.
 
 ## 4. Fault tests (run on the phone; record what you observe)
 
