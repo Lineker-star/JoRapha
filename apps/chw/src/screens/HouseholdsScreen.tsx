@@ -64,7 +64,9 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
   const [invalid, setInvalid] = useState(false);
   const [saveMs, setSaveMs] = useState<number | null>(null);
   // Measured once, when the list screen first renders.
-  const [coldStartMs] = useState<number>(() => markListVisible());
+  const [coldStartMs] = useState<number | null>(() => markListVisible());
+  const syncFailing = Boolean(status.downloadError ?? status.uploadError);
+  const noCatchment = catchments.length === 0;
   const { data: queue } = useQuery<{ n: number }>('SELECT count(*) AS n FROM ps_crud');
   const queued = queue[0]?.n ?? 0;
   const [signOutBlocked, setSignOutBlocked] = useState(false);
@@ -91,10 +93,11 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
   }
 
   async function save() {
+    if (!catchmentId) return; // the form explains why and the button is disabled
     const count = Number(members);
     if (
-      !catchmentId ||
       name.trim().length === 0 ||
+      members.trim().length === 0 ||
       !Number.isInteger(count) ||
       count < 0 ||
       count > 100
@@ -161,6 +164,9 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
             <Text className="text-ink-600">
               {status.connected ? t('sync.online') : t('sync.offline')}
             </Text>
+            {syncFailing ? (
+              <Text className="rounded-lg bg-red-50 p-3 text-red-900">{t('sync.failing')}</Text>
+            ) : null}
             <Text className="text-ink-600">
               {t('sync.lastSync', {
                 time: status.lastSyncedAt ? status.lastSyncedAt.toLocaleString() : t('sync.never'),
@@ -174,8 +180,12 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
 
             <View className="gap-2 rounded-xl border border-ink-200 p-3">
               <Text className="font-semibold text-ink-900">{t('chw.households.add')}</Text>
-              {catchments.length === 0 ? (
-                <Text className="text-ink-600">{t('chw.households.noCatchment')}</Text>
+              {noCatchment ? (
+                <Text className="rounded-lg bg-amber-50 p-3 text-amber-900">
+                  {status.hasSynced
+                    ? t('chw.households.noCatchment')
+                    : t('chw.households.catchmentNotSynced')}
+                </Text>
               ) : (
                 <View className="flex-row flex-wrap gap-2">
                   {catchments.map((c) => (
@@ -231,8 +241,10 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
               {invalid ? <Text className="text-red-700">{t('chw.households.invalid')}</Text> : null}
               <Pressable
                 accessibilityRole="button"
+                accessibilityState={{ disabled: noCatchment }}
+                disabled={noCatchment}
                 onPress={() => void save()}
-                className="min-h-12 items-center justify-center rounded-xl bg-brand-600 active:bg-brand-700"
+                className={`min-h-12 items-center justify-center rounded-xl ${noCatchment ? 'bg-ink-300' : 'bg-brand-600 active:bg-brand-700'}`}
               >
                 <Text className="font-semibold text-white">{t('chw.households.save')}</Text>
               </Pressable>
@@ -244,7 +256,9 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
                 <Text className="text-ink-700">{t('chw.metrics.localSave', { ms: saveMs })}</Text>
               ) : null}
               <Text className="text-ink-700">
-                {t('chw.metrics.coldStart', { ms: coldStartMs })}
+                {coldStartMs === null
+                  ? t('chw.metrics.coldStartNotMeasured')
+                  : t('chw.metrics.coldStart', { ms: coldStartMs })}
               </Text>
               <Text className="text-ink-700">
                 {t('chw.metrics.encryption', { version: getCipherVersion() ?? '?' })}

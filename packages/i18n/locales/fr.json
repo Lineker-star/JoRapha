@@ -78,7 +78,8 @@
     "never": "jamais",
     "syncNow": "Synchroniser maintenant",
     "offline": "Hors connexion",
-    "online": "En ligne"
+    "online": "En ligne",
+    "failing": "La synchronisation échoue : rien n’est envoyé ni reçu. Vos fiches restent sur ce téléphone, en attente, et seront envoyées dès que la synchronisation fonctionnera."
   },
   "chw": {
     "signIn": {
@@ -105,13 +106,15 @@
       "signOut": "Se déconnecter",
       "invalid": "Renseignez au moins le nom et le nombre de membres (0 à 100).",
       "memberCountValue": "Membres : {{count}}",
-      "pendingSignOut": "{{count}} enregistrement(s) pas encore envoyé(s). Connectez-vous au réseau et attendez la synchronisation avant de vous déconnecter."
+      "pendingSignOut": "{{count}} enregistrement(s) pas encore envoyé(s). Connectez-vous au réseau et attendez la synchronisation avant de vous déconnecter.",
+      "catchmentNotSynced": "Votre aire de responsabilité n’est pas encore téléchargée. Connectez-vous au réseau et attendez la première synchronisation avant d’ajouter des ménages."
     },
     "metrics": {
       "title": "Mesures du test",
       "localSave": "Dernier enregistrement local : {{ms}} ms",
       "coldStart": "Démarrage jusqu’à la liste : {{ms}} ms",
-      "encryption": "Chiffrement local : {{version}}"
+      "encryption": "Chiffrement local : {{version}}",
+      "coldStartNotMeasured": "Démarrage jusqu’à la liste : non mesuré (connexion pendant cette session)"
     },
     "deviceRevoked": "Cet appareil a été révoqué. Les données locales ont été effacées.",
     "encryptionMissing": "Chiffrement local inactif : l’application refuse de démarrer."
