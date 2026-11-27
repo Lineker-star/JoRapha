@@ -2,6 +2,8 @@ import type { EmailOtpType } from '@supabase/supabase-js';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { safeNextPath } from '@/lib/access';
+
+const EMAIL_LINK_TYPES: readonly EmailOtpType[] = ['email', 'magiclink', 'recovery', 'signup'];
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 /**
@@ -20,7 +22,9 @@ export async function GET(
 
   const code = url.searchParams.get('code');
   const tokenHash = url.searchParams.get('token_hash');
-  const type = url.searchParams.get('type') as EmailOtpType | null;
+  // Only the e-mail link types this app sends (security review): anything else is refused.
+  const rawType = url.searchParams.get('type');
+  const type = EMAIL_LINK_TYPES.find((t) => t === rawType) ?? null;
 
   let ok = false;
   if (code) {

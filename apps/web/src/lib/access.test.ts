@@ -46,6 +46,23 @@ describe('rolesFromClaims', () => {
   });
 });
 
+describe('safeNextPath against open redirects (security review)', () => {
+  it('refuses control characters the URL parser would strip', () => {
+    for (const evil of ['/\t/evil.com', '/\n/evil.com', '/\r/evil.com', '/\u0000/evil.com']) {
+      expect(safeNextPath(evil), JSON.stringify(evil)).toBeNull();
+    }
+  });
+
+  it('keeps encoded slashes on this site and requires a locale path', () => {
+    expect(safeNextPath('/%09/evil.com')).toBeNull(); // not under a locale
+    expect(safeNextPath('/%2F/evil.com')).toBeNull();
+    expect(safeNextPath('/fr/%2F%2Fevil.com')).toBe('/fr/%2F%2Fevil.com');
+    expect(safeNextPath('/de/clinician')).toBeNull();
+    expect(safeNextPath('/fr')).toBe('/fr');
+    expect(safeNextPath('/en/account?x=1')).toBe('/en/account?x=1');
+  });
+});
+
 describe('safeNextPath', () => {
   it('accepts same-site paths only', () => {
     expect(safeNextPath('/fr/clinician')).toBe('/fr/clinician');

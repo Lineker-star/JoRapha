@@ -7,7 +7,7 @@ import { supabaseEnv } from './env';
 
 /**
  * Supabase client for server components, server actions and route handlers. The session lives in
- * httpOnly cookies managed by @supabase/ssr; the proxy (src/proxy.ts) refreshes it on each request.
+ * cookies managed by @supabase/ssr (SameSite=Lax, Secure on HTTPS; readable by the browser client, so not httpOnly); the proxy (src/proxy.ts) refreshes it on each request.
  */
 export async function createSupabaseServerClient() {
   const { url, publishableKey } = supabaseEnv();

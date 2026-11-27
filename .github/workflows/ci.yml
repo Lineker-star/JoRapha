@@ -102,6 +102,7 @@ jobs:
       SUPABASE_AUTH_SMS_TWILIO_ACCOUNT_SID: ACplaceholder
       SUPABASE_AUTH_SMS_TWILIO_MESSAGE_SERVICE_SID: MGplaceholder
       SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN: placeholder
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

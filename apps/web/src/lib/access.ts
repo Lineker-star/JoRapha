@@ -1,3 +1,5 @@
+import { locales } from '@jorapha/i18n';
+
 import type { AreaId } from './areas';
 
 /** Roles carried in the access token by identity.custom_access_token_hook (claim `app_roles`). */
@@ -71,8 +73,22 @@ export function rolesFromClaims(claims: Record<string, unknown> | null | undefin
   );
 }
 
-/** Accepts only same-site relative paths for post-sign-in redirects (no open redirect). */
+const PROBE_ORIGIN = 'https://jorapha.invalid';
+const LOCALE_PATH = new RegExp(`^/(${locales.join('|')})(/|$)`);
+
+/**
+ * Accepts only same-site paths under a locale for post-sign-in redirects (no open redirect). Control characters
+ * are refused first: the URL parser strips tab/CR/LF, so "/\t/evil.com" would otherwise become "//evil.com"
+ * (security review, 2026-11-27). The path is then resolved as a URL and must stay on this site.
+ */
 export function safeNextPath(next: string | null | undefined): string | null {
-  if (!next || !next.startsWith('/') || next.startsWith('//') || next.includes('\\')) return null;
-  return next;
+  if (!next || !next.startsWith('/') || /[\u0000-\u001F\u007F\\]/.test(next)) return null;
+  let url: URL;
+  try {
+    url = new URL(next, PROBE_ORIGIN);
+  } catch {
+    return null;
+  }
+  if (url.origin !== PROBE_ORIGIN || !LOCALE_PATH.test(url.pathname)) return null;
+  return url.pathname + url.search;
 }
