@@ -3,8 +3,19 @@
 export const appStartedAt = Date.now();
 
 let coldStartMs: number | null = null;
+let measured = false;
+let signInShown = false;
 
-export function markListVisible(): number {
-  if (coldStartMs === null) coldStartMs = Date.now() - appStartedAt;
+// The sign-in screen waits for a person, so a run that showed it is not a cold-start measurement.
+export function markSignInShown(): void {
+  signInShown = true;
+}
+
+// Start-up to list for a launch with an existing session; null when this run went through sign-in.
+export function markListVisible(): number | null {
+  if (!measured) {
+    measured = true;
+    coldStartMs = signInShown ? null : Date.now() - appStartedAt;
+  }
   return coldStartMs;
 }
