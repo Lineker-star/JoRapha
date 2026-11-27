@@ -107,7 +107,8 @@
       "invalid": "Enter at least the name and the number of members (0 to 100).",
       "memberCountValue": "Members: {{count}}",
       "pendingSignOut": "{{count}} record(s) not sent yet. Connect to the network and wait for sync before signing out.",
-      "catchmentNotSynced": "Your catchment has not downloaded yet. Connect to the network and wait for the first sync before adding households."
+      "catchmentNotSynced": "Your catchment has not downloaded yet. Connect to the network and wait for the first sync before adding households.",
+      "saveFailed": "Not saved: the record could not be stored on this phone. Your entries are kept; try again."
     },
     "metrics": {
       "title": "Spike measurements",

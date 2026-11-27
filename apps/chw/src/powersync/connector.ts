@@ -33,12 +33,20 @@ export async function setStatus(
   reasonCode: string | null = null,
   label: string | null = null,
 ): Promise<void> {
+  // PowerSync exposes every table (local-only ones too) as a SQLite VIEW, and SQLite refuses
+  // INSERT … ON CONFLICT on a view: the upsert made every household save fail and roll back (emulator,
+  // 2026-11-27). Insert-if-missing then update works through the views' INSTEAD OF triggers.
+  const now = new Date().toISOString();
   await db.execute(
     `INSERT INTO household_sync_status (id, state, reason_code, label, updated_at)
-     VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET state = excluded.state, reason_code = excluded.reason_code,
-       label = coalesce(excluded.label, household_sync_status.label), updated_at = excluded.updated_at`,
-    [id, state, reasonCode, label, new Date().toISOString()],
+     SELECT ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM household_sync_status WHERE id = ?)`,
+    [id, state, reasonCode, label, now, id],
+  );
+  await db.execute(
+    `UPDATE household_sync_status
+        SET state = ?, reason_code = ?, label = coalesce(?, label), updated_at = ?
+      WHERE id = ?`,
+    [state, reasonCode, label, now, id],
   );
 }
 

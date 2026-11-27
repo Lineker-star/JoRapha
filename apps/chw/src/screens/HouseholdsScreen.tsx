@@ -62,6 +62,7 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsFailed, setGpsFailed] = useState(false);
   const [invalid, setInvalid] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const [saveMs, setSaveMs] = useState<number | null>(null);
   // Measured once, when the list screen first renders.
   const [coldStartMs] = useState<number | null>(() => markListVisible());
@@ -106,27 +107,36 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
       return;
     }
     setInvalid(false);
+    setSaveFailed(false);
     const id = Crypto.randomUUID();
     const started = performance.now();
-    await db.writeTransaction(async (tx) => {
-      await tx.execute(
-        `INSERT INTO households (id, catchment_id, name_or_head, village, lat, lng, member_count, client_created_at, op_id)
+    try {
+      await db.writeTransaction(async (tx) => {
+        await tx.execute(
+          `INSERT INTO households (id, catchment_id, name_or_head, village, lat, lng, member_count, client_created_at, op_id)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          id,
-          catchmentId,
-          name.trim(),
-          village.trim() || null,
-          position?.lat ?? null,
-          position?.lng ?? null,
-          count,
-          new Date().toISOString(),
-          Crypto.randomUUID(),
-        ],
-      );
-      // Same transaction: a record can never exist locally without its "pending" state.
-      await setStatus(tx, id, 'pending', null, name.trim());
-    });
+          [
+            id,
+            catchmentId,
+            name.trim(),
+            village.trim() || null,
+            position?.lat ?? null,
+            position?.lng ?? null,
+            count,
+            new Date().toISOString(),
+            Crypto.randomUUID(),
+          ],
+        );
+        // Same transaction: a record can never exist locally without its "pending" state.
+        await setStatus(tx, id, 'pending', null, name.trim());
+      });
+    } catch (error) {
+      // Never fail silently: the CHW must know the record was NOT saved (the form keeps the values).
+      // Only the error message is logged, never the household's data.
+      console.warn('household save failed', error instanceof Error ? error.message : 'unknown');
+      setSaveFailed(true);
+      return;
+    }
     setSaveMs(Math.round(performance.now() - started));
     setName('');
     setVillage('');
@@ -239,6 +249,9 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
                 </Text>
               </Pressable>
               {invalid ? <Text className="text-red-700">{t('chw.households.invalid')}</Text> : null}
+              {saveFailed ? (
+                <Text className="text-red-700">{t('chw.households.saveFailed')}</Text>
+              ) : null}
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ disabled: noCatchment }}
