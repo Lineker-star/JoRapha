@@ -18,7 +18,7 @@ import { isAuthRefreshDiscardedError, isAuthRetryableFetchError } from '@supabas
 
 import { config, syncIngestUrl } from '../config';
 import { fetchWithTimeout } from '../lib/fetchWithTimeout';
-import { supabase } from '../lib/supabase';
+import { readStoredUserId, supabase } from '../lib/supabase';
 import { classifyRefreshFailure, shouldRefresh } from '../lib/tokenPolicy';
 
 /** Anything that can run a statement: the database or an open write transaction. */
@@ -71,7 +71,11 @@ let lastRefreshAt: number | null = null;
 export async function accessToken(force = false): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
   const stored = data.session?.access_token ?? null;
-  if (!stored) return null;
+  if (!stored) {
+    // Still signed in on this phone, but the expired token could not be refreshed (offline): retry later.
+    if (await readStoredUserId()) throw new Error('session not refreshed yet: offline');
+    return null;
+  }
   const now = Date.now();
   if (
     !shouldRefresh({
@@ -183,7 +187,7 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
     const { data } = await supabase.auth.getSession();
     if (!data.session) {
       await backToPending();
-      throw new Error('not signed in');
+      throw new Error('session not refreshed yet: offline');
     }
 
     for (const op of ops) await setStatus(db, op.entity_id, 'syncing');

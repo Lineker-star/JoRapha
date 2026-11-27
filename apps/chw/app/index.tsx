@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getDeviceId } from '../src/lib/deviceIdentity';
 import { markStartup } from '../src/metrics';
-import { supabase } from '../src/lib/supabase';
+import { readStoredUserId, supabase } from '../src/lib/supabase';
 import { SupabaseConnector } from '../src/powersync/connector';
 import { openDatabase, purgeDatabase } from '../src/powersync/database';
 import { HouseholdsScreen } from '../src/screens/HouseholdsScreen';
@@ -27,16 +27,28 @@ async function registerDevice(deviceId: string): Promise<void> {
 export default function ChwHome() {
   const { t } = useTranslation();
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  // The stored session decides "signed in", not getSession(): see readStoredUserId (offline lock-out, 2026-11-27).
+  const [storedUserId, setStoredUserId] = useState<string | null | undefined>(undefined);
   const [db, setDb] = useState<PowerSyncDatabase | null>(null);
   const [revoked, setRevoked] = useState(false);
   const [fatal, setFatal] = useState(false);
 
   useEffect(() => {
+    void readStoredUserId().then((id) => {
+      markStartup('stored session read');
+      setStoredUserId(id);
+    });
+    // May take ~27 s offline with an expired token (refresh retries); nothing waits for it.
     void supabase.auth.getSession().then(({ data }) => {
       markStartup('session loaded');
       setSession(data.session);
     });
-    const { data } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    const { data } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s);
+      // A real sign-out or a refresh token rejected by the server removes the stored session.
+      if (event === 'SIGNED_OUT') setStoredUserId(null);
+      else if (s) setStoredUserId(s.user.id);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 
@@ -52,7 +64,7 @@ export default function ChwHome() {
   }, []);
 
   // Keyed on the user, not the session object: a routine token refresh must not reopen and reconnect.
-  const userId = session?.user.id ?? null;
+  const userId = session?.user.id ?? storedUserId ?? null;
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
@@ -103,21 +115,21 @@ export default function ChwHome() {
       </SafeAreaView>
     );
   }
-  if (revoked && !session) {
+  if (revoked && !userId) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-white px-6">
         <Text className="text-center text-lg text-ink-900">{t('chw.deviceRevoked')}</Text>
       </SafeAreaView>
     );
   }
-  if (session === undefined || (session && !db)) {
+  if (storedUserId === undefined || (userId && !db)) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
         <ActivityIndicator />
       </View>
     );
   }
-  if (!session || !db) return <SignInScreen />;
+  if (!userId || !db) return <SignInScreen />;
 
   return (
     <PowerSyncContext.Provider value={db}>
