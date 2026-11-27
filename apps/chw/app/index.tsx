@@ -47,6 +47,8 @@ export default function ChwHome() {
       setSession(data.session);
     });
     const { data } = supabase.auth.onAuthStateChange((event, s) => {
+      // Diagnostics for the fault tests: event name and whether a session came with it, nothing else.
+      console.warn(`[auth] event ${event} session=${s ? 'yes' : 'no'}`);
       if (event !== 'INITIAL_SESSION') authEventSeen.current = true;
       setSession(s);
       // A real sign-out or a refresh token rejected by the server removes the stored session.
@@ -60,6 +62,7 @@ export default function ChwHome() {
   // Sign out BEFORE purging: once the session is gone fetchCredentials returns null, so a connection still being
   // set up cannot download data again into the cleared database.
   const onDeviceRevoked = useCallback(() => {
+    console.warn('[auth] app sign-out: device revoked');
     setRevoked(true);
     void supabase.auth
       .signOut({ scope: 'local' })
@@ -113,6 +116,7 @@ export default function ChwHome() {
 
   // The households screen allows this only when the upload queue is empty. Sign out first (see onDeviceRevoked).
   async function signOut() {
+    console.warn('[auth] app sign-out: user tapped Sign out');
     setDb(null);
     await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
     await purgeDatabase();
