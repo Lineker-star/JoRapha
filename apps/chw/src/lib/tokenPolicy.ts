@@ -22,7 +22,11 @@ export interface RefreshDecisionInput {
 export function shouldRefresh(input: RefreshDecisionInput): boolean {
   const reissue = input.storedToken === input.lastIssuedToken;
   if (!input.force && !reissue) return false;
-  return input.lastRefreshAt === null || input.now - input.lastRefreshAt >= input.minIntervalMs;
+  if (input.lastRefreshAt === null) return true;
+  const elapsed = input.now - input.lastRefreshAt;
+  // A negative gap means the phone's clock moved backwards (fault test 4, clock 2 days back): without this the
+  // gap stayed negative for days and the token could never be refreshed again.
+  return elapsed < 0 || elapsed >= input.minIntervalMs;
 }
 
 /** What to do when the refresh call failed. */

@@ -89,6 +89,7 @@ export async function accessToken(force = false): Promise<string | null> {
   lastRefreshAt = now;
   const refreshed = await supabase.auth.refreshSession();
   if (refreshed.data.session) {
+    console.warn('[auth] token refreshed');
     lastIssuedToken = refreshed.data.session.access_token;
     return lastIssuedToken;
   }
@@ -98,6 +99,7 @@ export async function accessToken(force = false): Promise<string | null> {
         discarded: isAuthRefreshDiscardedError(refreshed.error),
       })
     : 'keep-session';
+  console.warn(`[auth] token refresh failed: ${failure}`);
   if (failure === 'session-invalid') throw new SessionInvalidError();
   const { data: after } = await supabase.auth.getSession();
   lastIssuedToken = after.session?.access_token ?? null;
@@ -116,6 +118,14 @@ export interface ConnectorHooks {
  * ONLY when the server answered every operation in it; every other outcome keeps the queue and retries, so
  * an acknowledged local record is never dropped by a server or network fault.
  */
+/**
+ * Diagnostics for the spike's fault tests: batch size and outcome only (HTTP status or error type), never
+ * household data (CLAUDE.md: no personal health data in logs).
+ */
+function logUpload(opCount: number, outcome: string): void {
+  console.warn(`[sync] upload of ${opCount} op(s): ${outcome}`);
+}
+
 export class SupabaseConnector implements PowerSyncBackendConnector {
   constructor(
     private readonly deviceId: string,
@@ -191,8 +201,10 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
       });
     } catch (networkError) {
       await backToPending();
+      logUpload(ops.length, networkError instanceof Error ? networkError.name : 'network error');
       throw networkError;
     }
+    logUpload(ops.length, `HTTP ${response.status}`);
 
     if (response.status === 403) {
       const body = (await response.json().catch(() => ({}))) as { error?: string };

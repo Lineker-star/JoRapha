@@ -36,6 +36,19 @@ describe('shouldRefresh', () => {
   });
 });
 
+describe('shouldRefresh when the phone clock moves backwards', () => {
+  it('still allows a refresh after the clock was set 2 days back (fault test 4)', () => {
+    const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
+    expect(
+      shouldRefresh({
+        ...base,
+        force: true,
+        lastRefreshAt: base.now + twoDaysMs, // last refresh happened "in the future" of the new clock
+      }),
+    ).toBe(true);
+  });
+});
+
 describe('classifyRefreshFailure', () => {
   it('keeps the session when offline or when a concurrent refresh won', () => {
     expect(classifyRefreshFailure({ retryable: true, discarded: false })).toBe('keep-session');

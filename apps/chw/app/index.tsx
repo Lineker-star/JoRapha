@@ -7,6 +7,7 @@ import { ActivityIndicator, Platform, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getDeviceId } from '../src/lib/deviceIdentity';
+import { markStartup } from '../src/metrics';
 import { supabase } from '../src/lib/supabase';
 import { SupabaseConnector } from '../src/powersync/connector';
 import { openDatabase, purgeDatabase } from '../src/powersync/database';
@@ -31,7 +32,10 @@ export default function ChwHome() {
   const [fatal, setFatal] = useState(false);
 
   useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    void supabase.auth.getSession().then(({ data }) => {
+      markStartup('session loaded');
+      setSession(data.session);
+    });
     const { data } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
     return () => data.subscription.unsubscribe();
   }, []);
@@ -54,6 +58,7 @@ export default function ChwHome() {
     let cancelled = false;
     void (async () => {
       const deviceId = await getDeviceId();
+      markStartup('device id read');
       let database: PowerSyncDatabase;
       try {
         database = await openDatabase();
@@ -62,6 +67,7 @@ export default function ChwHome() {
         if (!cancelled) setFatal(true);
         return;
       }
+      markStartup('database opened');
       if (cancelled) return;
       // Offline-first: the local list is shown now, whatever the network does (a stalled 2G request kept the
       // spinner up for minutes on 2026-11-27). Registration and sync run in the background.

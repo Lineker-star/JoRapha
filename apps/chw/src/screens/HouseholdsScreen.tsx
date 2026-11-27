@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { isNetworkError } from '../lib/syncErrors';
 import { markListVisible } from '../metrics';
 import { setStatus } from '../powersync/connector';
 import { getCipherVersion } from '../powersync/database';
@@ -66,7 +67,10 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
   const [saveMs, setSaveMs] = useState<number | null>(null);
   // Measured once, when the list screen first renders.
   const [coldStartMs] = useState<number | null>(() => markListVisible());
-  const syncFailing = Boolean(status.downloadError ?? status.uploadError);
+  const syncError = status.downloadError ?? status.uploadError;
+  const syncFailing = Boolean(syncError);
+  // No network is normal in the field: a calm notice, not the red failure banner.
+  const offlineOnly = isNetworkError(syncError);
   const noCatchment = catchments.length === 0;
   const { data: queue } = useQuery<{ n: number }>('SELECT count(*) AS n FROM ps_crud');
   const queued = queue[0]?.n ?? 0;
@@ -174,7 +178,11 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
             <Text className="text-ink-600">
               {status.connected ? t('sync.online') : t('sync.offline')}
             </Text>
-            {syncFailing ? (
+            {syncFailing && offlineOnly ? (
+              <Text className="rounded-lg bg-ink-50 p-3 text-ink-900">
+                {t('sync.offlineNotice')}
+              </Text>
+            ) : syncFailing ? (
               <Text className="rounded-lg bg-red-50 p-3 text-red-900">{t('sync.failing')}</Text>
             ) : null}
             <Text className="text-ink-600">

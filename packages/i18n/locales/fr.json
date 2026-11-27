@@ -79,7 +79,8 @@
     "syncNow": "Synchroniser maintenant",
     "offline": "Hors connexion",
     "online": "En ligne",
-    "failing": "La synchronisation échoue : rien n’est envoyé ni reçu. Vos fiches restent sur ce téléphone, en attente, et seront envoyées dès que la synchronisation fonctionnera."
+    "failing": "La synchronisation échoue : rien n’est envoyé ni reçu. Vos fiches restent sur ce téléphone, en attente, et seront envoyées dès que la synchronisation fonctionnera.",
+    "offlineNotice": "Hors ligne : vos fiches sont conservées sur ce téléphone, en attente, et seront envoyées automatiquement au retour du réseau."
   },
   "chw": {
     "signIn": {

@@ -79,7 +79,8 @@
     "syncNow": "Sync now",
     "offline": "Offline",
     "online": "Online",
-    "failing": "Sync is failing: nothing is being sent or received. Your records stay on this phone, marked pending, and will be sent once sync works again."
+    "failing": "Sync is failing: nothing is being sent or received. Your records stay on this phone, marked pending, and will be sent once sync works again.",
+    "offlineNotice": "Offline: your records are kept on this phone, marked pending, and will be sent automatically when the network returns."
   },
   "chw": {
     "signIn": {
