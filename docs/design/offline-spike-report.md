@@ -80,6 +80,25 @@ reviewer — 3 should-fixes (download scope, idempotency mismatch, error mapping
 - **Gate before staging/production:** never use the PowerSync dashboard's automatic Supabase setup there; connect
   with a role created by migrations, and check the publication and role grants after connecting.
 
+### 3.6 First end-to-end run on the Android emulator (2026-11-27, build 8)
+
+Android 14 emulator, 2 GB RAM (`jorapha_spike`), EAS build b486d026 (spike profile). Not a substitute for the
+low-cost phone: timings below are indicative only.
+
+| Check                                     | Result                                                                                                                                                                                                      |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local encryption                          | SQLCipher 4.19.0 community active                                                                                                                                                                           |
+| Device registration                       | device 8ff94327… registered, `active`                                                                                                                                                                       |
+| Catchment download (sync rules)           | "Spike catchment Bertoua-Test (synthetic)" downloaded                                                                                                                                                       |
+| Save household `T0 01` (Koume, 4 members) | local save 7 ms; shown **Synced** within seconds                                                                                                                                                            |
+| Server                                    | `community.household` row 1, row_version 1, server `created_at` 04:42:58.998Z vs `client_created_at` 04:42:55.679Z, origin device 8ff94327…; `sync.operation` insert **applied**; device `last_sync_at` set |
+| Start-up to list (emulator)               | 4 957 ms (one sample; budget ≤ 5 000 ms p95 on the reference phone)                                                                                                                                         |
+
+Bugs found and fixed on the way (all in `fix/chw-token-refresh` / build 8): Babel plugin not declared (EAS
+bundling), PowerSync audience (dashboard), sync rules not deployed (dashboard), start-up blocked on the network,
+no request timeouts, token expiry judged by the device clock, sign-out/purge order, and household save failing
+silently (UPSERT on a PowerSync view).
+
 ## 4. Fault tests (run on the phone; record what you observe)
 
 Device: model ______ · Android ______ · RAM ______ · free storage ______ · app build ______ · date ______
