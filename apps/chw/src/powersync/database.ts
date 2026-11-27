@@ -3,7 +3,13 @@ import { PowerSyncDatabase } from '@powersync/react-native';
 import { NativeModules } from 'react-native';
 
 import { type KeyFormat, rekeyToRawStatement, sqlcipherKey } from '../lib/dbKey';
-import { getDatabaseKey, markDatabaseCreated } from '../lib/deviceIdentity';
+import {
+  getDatabaseKey,
+  getDatabaseOwner,
+  markDatabaseCreated,
+  setDatabaseOwner,
+} from '../lib/deviceIdentity';
+import { ownershipDecision } from '../lib/storedSession';
 import { AppSchema } from './schema';
 
 const DB_FILENAME = 'jorapha-chw.sqlite';
@@ -117,6 +123,19 @@ export function getCipherVersion(): string | null {
 export async function pendingUploads(db: PowerSyncDatabase): Promise<number> {
   const row = await db.get<{ n: number }>('SELECT count(*) AS n FROM ps_crud');
   return row.n;
+}
+
+/**
+ * Binds the local database to one CHW before anything is shown or synced (offline-sync review, 2026-11-27): a
+ * different CHW never sees the previous CHW's households, and the previous CHW's unsent writes are never uploaded
+ * with the new CHW's token. Returns false when the phone must be handed back (unsent records of another CHW).
+ */
+export async function ensureOwner(db: PowerSyncDatabase, userId: string): Promise<boolean> {
+  const decision = ownershipDecision(await getDatabaseOwner(), userId, await pendingUploads(db));
+  if (decision === 'blocked') return false;
+  if (decision === 'wipe-then-claim') await db.disconnectAndClear();
+  if (decision !== 'use') await setDatabaseOwner(userId);
+  return true;
 }
 
 /** Device revoked or sign-out with an empty queue: disconnect and erase every local row (OFF-007). */

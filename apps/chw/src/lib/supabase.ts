@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 import { config } from '../config';
 import { fetchWithTimeout } from './fetchWithTimeout';
+import { parseStoredUserId } from './storedSession';
 import { secureStorage } from './secureStorage';
 
 // supabase-js has no request timeout: on a stalled 2G connection a request can wait for minutes (seen on the
@@ -29,10 +30,7 @@ export const AUTH_STORAGE_KEY = (() => {
  */
 export async function readStoredUserId(): Promise<string | null> {
   try {
-    const raw = await secureStorage.getItem(AUTH_STORAGE_KEY);
-    if (!raw) return null;
-    const stored = JSON.parse(raw) as { user?: { id?: unknown } } | null;
-    return typeof stored?.user?.id === 'string' ? stored.user.id : null;
+    return parseStoredUserId(await secureStorage.getItem(AUTH_STORAGE_KEY));
   } catch {
     return null;
   }

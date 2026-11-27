@@ -162,16 +162,23 @@ start, hence the stopwatch row.
    database timeouts. Watch the PowerSync dashboard connection status during the tests.
 9. **A 403 FORBIDDEN** (e.g. suspended account) keeps the queue and shows the reason, retrying until resolved.
 
-10. **Another user signing in on the same phone.** When a session ends without the explicit Sign out (refresh
-    token rejected, signed out elsewhere), the local database and its queue stay. If a different CHW then signs in,
-    the previous CHW's unsynced writes would upload under the new account and their cached households would be
-    visible. Gate before real data: store the owner's user id with the database; a different user must not open
-    it (block, or require an explicit purge showing the unsynced count).
+10. **Another user signing in on the same phone.** Addressed 2026-11-27 (build 13): the local database records
+    its owner (CHW user id). A different CHW signing in gets the previous CHW's synced data wiped first; if the
+    previous CHW still has unsent records, the app shows nothing and syncs nothing until the phone is handed back
+    (`apps/chw/src/lib/storedSession.ts`, tested). Still to verify on a device with two test accounts.
 11. **Token expiry judged by the phone's clock.** supabase-js decides "expired" with the device clock; on
     2026-11-27 PowerSync rejected a resumed emulator's token (PSYNC_S2103). The connector now refreshes with the
     server when PowerSync asks again for a token it already had, or after a 401, at most once a minute
     (`apps/chw/src/lib/tokenPolicy.ts`, tested). A refresh token the server rejects shows a sync error; a
     "sign in again" screen is still needed.
+
+12. **Offline start with an expired token** showed the sign-in screen (supabase-js returns no session when the
+    refresh cannot reach the server). Fixed in build 13: "signed in" comes from the session stored on the phone.
+    Residual risk: a captive portal (paid Wi-Fi login page) answering the token refresh with a non-JSON error is
+    treated by supabase-js as a rejected refresh token, which signs the CHW out until they are online again.
+13. **Local database key** is now used as a SQLCipher raw key (no PBKDF2 per connection; owner approved
+    2026-11-27); existing databases switch once, decided by probing the file so an interrupted switch heals at
+    the next launch. A device test that kills the app during the switch (Maestro) is still to be written.
 
 ## 6. Recommendation for ADR-002
 

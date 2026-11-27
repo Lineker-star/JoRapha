@@ -187,7 +187,9 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
     const { data } = await supabase.auth.getSession();
     if (!data.session) {
       await backToPending();
-      throw new Error('session not refreshed yet: offline');
+      throw new Error(
+        (await readStoredUserId()) ? 'session not refreshed yet: offline' : 'not signed in',
+      );
     }
 
     for (const op of ops) await setStatus(db, op.entity_id, 'syncing');

@@ -119,6 +119,7 @@
       "coldStartNotMeasured": "Start-up to list: not measured (signed in during this run)"
     },
     "deviceRevoked": "This device has been revoked. Local data has been erased.",
-    "encryptionMissing": "Local encryption is not active: the app refuses to start."
+    "encryptionMissing": "Local encryption is not active: the app refuses to start.",
+    "otherUserPending": "This phone still has records from another health worker that have not been sent. Give it back to them so they can connect and sync, or contact your supervisor. Nothing is shown or sent in the meantime."
   }
 }

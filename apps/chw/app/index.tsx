@@ -1,7 +1,7 @@
 import { PowerSyncContext, type PowerSyncDatabase } from '@powersync/react-native';
 import type { Session } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Platform, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,7 +10,7 @@ import { getDeviceId } from '../src/lib/deviceIdentity';
 import { markStartup } from '../src/metrics';
 import { readStoredUserId, supabase } from '../src/lib/supabase';
 import { SupabaseConnector } from '../src/powersync/connector';
-import { openDatabase, purgeDatabase } from '../src/powersync/database';
+import { ensureOwner, openDatabase, purgeDatabase } from '../src/powersync/database';
 import { HouseholdsScreen } from '../src/screens/HouseholdsScreen';
 import { SignInScreen } from '../src/screens/SignInScreen';
 
@@ -32,11 +32,14 @@ export default function ChwHome() {
   const [db, setDb] = useState<PowerSyncDatabase | null>(null);
   const [revoked, setRevoked] = useState(false);
   const [fatal, setFatal] = useState(false);
+  const [otherUserPending, setOtherUserPending] = useState(false);
+  // Once any auth event arrived, the slower stored-session read must not overwrite it.
+  const authEventSeen = useRef(false);
 
   useEffect(() => {
     void readStoredUserId().then((id) => {
       markStartup('stored session read');
-      setStoredUserId(id);
+      if (!authEventSeen.current) setStoredUserId(id);
     });
     // May take ~27 s offline with an expired token (refresh retries); nothing waits for it.
     void supabase.auth.getSession().then(({ data }) => {
@@ -44,6 +47,7 @@ export default function ChwHome() {
       setSession(data.session);
     });
     const { data } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event !== 'INITIAL_SESSION') authEventSeen.current = true;
       setSession(s);
       // A real sign-out or a refresh token rejected by the server removes the stored session.
       if (event === 'SIGNED_OUT') setStoredUserId(null);
@@ -80,7 +84,13 @@ export default function ChwHome() {
         return;
       }
       markStartup('database opened');
+      if (!(await ensureOwner(database, userId))) {
+        // Another CHW's unsent records are on this phone: show nothing, sync nothing.
+        if (!cancelled) setOtherUserPending(true);
+        return;
+      }
       if (cancelled) return;
+      setOtherUserPending(false);
       // Offline-first: the local list is shown now, whatever the network does (a stalled 2G request kept the
       // spinner up for minutes on 2026-11-27). Registration and sync run in the background.
       setDb(database);
@@ -112,6 +122,13 @@ export default function ChwHome() {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-white px-6">
         <Text className="text-center text-lg text-red-800">{t('chw.encryptionMissing')}</Text>
+      </SafeAreaView>
+    );
+  }
+  if (otherUserPending) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-white px-6">
+        <Text className="text-center text-lg text-red-800">{t('chw.otherUserPending')}</Text>
       </SafeAreaView>
     );
   }
