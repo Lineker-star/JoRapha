@@ -1,22 +1,80 @@
+import { open } from '@op-engineering/op-sqlite';
 import { PowerSyncDatabase } from '@powersync/react-native';
+import { NativeModules } from 'react-native';
 
-import { getDatabaseKey, markDatabaseCreated } from '../lib/deviceIdentity';
+import { type KeyFormat, rekeyToRawStatement, sqlcipherKey } from '../lib/dbKey';
+import {
+  getDatabaseKey,
+  getKeyFormat,
+  isDatabaseCreated,
+  markDatabaseCreated,
+  setKeyFormatRaw,
+} from '../lib/deviceIdentity';
 import { AppSchema } from './schema';
+
+const DB_FILENAME = 'jorapha-chw.sqlite';
 
 let instance: PowerSyncDatabase | null = null;
 let cipherVersion: string | null = null;
 
 export class EncryptionInactiveError extends Error {}
 
+/** Same file location PowerSync's op-sqlite adapter uses (it may point at a legacy path on Android). */
+function databaseLocation(): string | undefined {
+  const helper = NativeModules.NativePowerSyncHelper as
+    { resolveDefaultDatabaseLocation?: (name: string) => string | null } | undefined;
+  return helper?.resolveDefaultDatabaseLocation?.(DB_FILENAME) ?? undefined;
+}
+
+/**
+ * One-time switch of an existing passphrase-keyed database to the raw form of the same key (src/lib/dbKey.ts),
+ * before PowerSync opens any connection. Runs on a single connection: the WAL is checkpointed and the journal set
+ * to DELETE so the re-key covers the whole file; PowerSync switches back to WAL when it opens. Any failure keeps
+ * the legacy passphrase form (slower start, nothing lost) and is retried at the next launch.
+ */
+async function resolveKeyFormat(hexKey: string): Promise<KeyFormat> {
+  if ((await getKeyFormat()) === 'raw') return 'raw';
+  if (!(await isDatabaseCreated())) {
+    await setKeyFormatRaw(); // new database: raw key from the start
+    return 'raw';
+  }
+  const location = databaseLocation();
+  try {
+    const legacy = open({
+      name: DB_FILENAME,
+      ...(location ? { location } : {}),
+      encryptionKey: sqlcipherKey(hexKey, 'passphrase'),
+    });
+    try {
+      legacy.executeSync('SELECT count(*) FROM sqlite_master'); // proves the old key opens it
+      legacy.executeSync('PRAGMA wal_checkpoint(TRUNCATE)');
+      legacy.executeSync('PRAGMA journal_mode = DELETE');
+      legacy.executeSync(rekeyToRawStatement(hexKey));
+    } finally {
+      legacy.close();
+    }
+    await setKeyFormatRaw();
+    console.warn('[startup] database re-keyed to raw key');
+    return 'raw';
+  } catch (error) {
+    console.warn(
+      '[startup] re-key skipped, keeping passphrase key:',
+      error instanceof Error ? error.message : 'unknown',
+    );
+    return 'passphrase';
+  }
+}
+
 /** Opens the SQLCipher-encrypted PowerSync database (key from the secure store) and proves it is encrypted. */
 export async function openDatabase(): Promise<PowerSyncDatabase> {
   if (instance) return instance;
-  const encryptionKey = await getDatabaseKey();
+  const hexKey = await getDatabaseKey();
+  const format = await resolveKeyFormat(hexKey);
   const db = new PowerSyncDatabase({
     schema: AppSchema,
     database: {
-      dbFilename: 'jorapha-chw.sqlite',
-      sqliteOptions: { encryptionKey },
+      dbFilename: DB_FILENAME,
+      sqliteOptions: { encryptionKey: sqlcipherKey(hexKey, format) },
     },
   });
   await db.init();
