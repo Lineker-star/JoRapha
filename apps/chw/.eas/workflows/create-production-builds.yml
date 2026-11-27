@@ -1,0 +1,16 @@
+# EAS Workflow: production build of the CHW app (Android App Bundle for the Play Store).
+# Manual only (no `on:` trigger): run it from apps/chw with
+#   npx eas-cli workflow:run create-production-builds.yml
+# Before the first run, set the EAS environment variables for the "production" environment
+# (EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, EXPO_PUBLIC_POWERSYNC_URL) for a production
+# backend. None exists yet: no real patient data until the playbook's section 14 gates pass (CLAUDE.md).
+# iOS is not set up (no Apple credentials); add a build_ios job when it is.
+name: Create production builds
+
+jobs:
+  build_android:
+    name: Build Android app (production)
+    type: build
+    params:
+      platform: android
+      profile: production
