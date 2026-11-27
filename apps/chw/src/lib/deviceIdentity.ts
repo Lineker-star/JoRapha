@@ -40,19 +40,3 @@ export async function getDeviceId(): Promise<string> {
   await secureStorage.setItem(KEY_DEVICE, id);
   return id;
 }
-
-const KEY_DB_FORMAT = 'jorapha.db.keyformat';
-
-/** Whether a database was already created with the current key (see getDatabaseKey). */
-export async function isDatabaseCreated(): Promise<boolean> {
-  return (await secureStorage.getItem(KEY_DB_CREATED)) !== null;
-}
-
-/** How the key is handed to SQLCipher (src/lib/dbKey.ts). Absent = legacy passphrase form. */
-export async function getKeyFormat(): Promise<'passphrase' | 'raw'> {
-  return (await secureStorage.getItem(KEY_DB_FORMAT)) === 'raw' ? 'raw' : 'passphrase';
-}
-
-export async function setKeyFormatRaw(): Promise<void> {
-  await secureStorage.setItem(KEY_DB_FORMAT, 'raw');
-}

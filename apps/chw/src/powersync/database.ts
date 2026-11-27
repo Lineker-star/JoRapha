@@ -3,13 +3,7 @@ import { PowerSyncDatabase } from '@powersync/react-native';
 import { NativeModules } from 'react-native';
 
 import { type KeyFormat, rekeyToRawStatement, sqlcipherKey } from '../lib/dbKey';
-import {
-  getDatabaseKey,
-  getKeyFormat,
-  isDatabaseCreated,
-  markDatabaseCreated,
-  setKeyFormatRaw,
-} from '../lib/deviceIdentity';
+import { getDatabaseKey, markDatabaseCreated } from '../lib/deviceIdentity';
 import { AppSchema } from './schema';
 
 const DB_FILENAME = 'jorapha-chw.sqlite';
@@ -26,19 +20,37 @@ function databaseLocation(): string | undefined {
   return helper?.resolveDefaultDatabaseLocation?.(DB_FILENAME) ?? undefined;
 }
 
-/**
- * One-time switch of an existing passphrase-keyed database to the raw form of the same key (src/lib/dbKey.ts),
- * before PowerSync opens any connection. Runs on a single connection: the WAL is checkpointed and the journal set
- * to DELETE so the re-key covers the whole file; PowerSync switches back to WAL when it opens. Any failure keeps
- * the legacy passphrase form (slower start, nothing lost) and is retried at the next launch.
- */
-async function resolveKeyFormat(hexKey: string): Promise<KeyFormat> {
-  if ((await getKeyFormat()) === 'raw') return 'raw';
-  if (!(await isDatabaseCreated())) {
-    await setKeyFormatRaw(); // new database: raw key from the start
-    return 'raw';
+/** True when this key opens the database file (an absent file is created, which is fine for a new install). */
+function opensWith(key: string, location: string | undefined): boolean {
+  try {
+    const db = open({ name: DB_FILENAME, ...(location ? { location } : {}), encryptionKey: key });
+    try {
+      db.executeSync('SELECT count(*) FROM sqlite_master');
+      return true;
+    } finally {
+      db.close();
+    }
+  } catch {
+    return false;
   }
+}
+
+/**
+ * Decides how the key is handed to SQLCipher by probing the file itself, never by trusting a stored marker, so a
+ * crash at any point of the one-time switch heals at the next launch (security review, 2026-11-27):
+ *  1. the raw key opens it (new install, or already switched): raw;
+ *  2. the legacy passphrase opens it: switch once to the raw key on a single connection (WAL checkpointed,
+ *     journal DELETE; PowerSync turns WAL back on), then confirm the raw key opens it;
+ *     if the switch fails, keep the passphrase form (slower start, nothing lost);
+ *  3. neither opens it: the key does not match the file; refuse to run (encryption error screen).
+ * Runs before PowerSync opens any connection. Logs carry the error type only, never key material.
+ */
+function resolveKeyFormat(hexKey: string): KeyFormat {
   const location = databaseLocation();
+  if (opensWith(sqlcipherKey(hexKey, 'raw'), location)) return 'raw';
+  if (!opensWith(sqlcipherKey(hexKey, 'passphrase'), location)) {
+    throw new EncryptionInactiveError('database key does not open the local database');
+  }
   try {
     const legacy = open({
       name: DB_FILENAME,
@@ -46,30 +58,37 @@ async function resolveKeyFormat(hexKey: string): Promise<KeyFormat> {
       encryptionKey: sqlcipherKey(hexKey, 'passphrase'),
     });
     try {
-      legacy.executeSync('SELECT count(*) FROM sqlite_master'); // proves the old key opens it
       legacy.executeSync('PRAGMA wal_checkpoint(TRUNCATE)');
-      legacy.executeSync('PRAGMA journal_mode = DELETE');
+      const mode = legacy.executeSync('PRAGMA journal_mode = DELETE').rows[0] as
+        { journal_mode?: string } | undefined;
+      // Re-key only outside WAL (offline-sync review): if the switch did not take, keep the passphrase form.
+      if (String(mode?.journal_mode).toLowerCase() !== 'delete') {
+        console.warn('[startup] re-key skipped: journal mode is not DELETE');
+        return 'passphrase';
+      }
       legacy.executeSync(rekeyToRawStatement(hexKey));
     } finally {
       legacy.close();
     }
-    await setKeyFormatRaw();
-    console.warn('[startup] database re-keyed to raw key');
-    return 'raw';
   } catch (error) {
     console.warn(
-      '[startup] re-key skipped, keeping passphrase key:',
-      error instanceof Error ? error.message : 'unknown',
+      '[startup] re-key failed, keeping passphrase key:',
+      error instanceof Error ? error.name : 'unknown',
     );
-    return 'passphrase';
+    return opensWith(sqlcipherKey(hexKey, 'raw'), location) ? 'raw' : 'passphrase';
   }
+  if (opensWith(sqlcipherKey(hexKey, 'raw'), location)) {
+    console.warn('[startup] database re-keyed to raw key');
+    return 'raw';
+  }
+  return 'passphrase';
 }
 
 /** Opens the SQLCipher-encrypted PowerSync database (key from the secure store) and proves it is encrypted. */
 export async function openDatabase(): Promise<PowerSyncDatabase> {
   if (instance) return instance;
   const hexKey = await getDatabaseKey();
-  const format = await resolveKeyFormat(hexKey);
+  const format = resolveKeyFormat(hexKey);
   const db = new PowerSyncDatabase({
     schema: AppSchema,
     database: {
