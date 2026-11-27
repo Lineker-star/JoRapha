@@ -47,9 +47,6 @@ export default function ChwHome() {
     let cancelled = false;
     void (async () => {
       const deviceId = await getDeviceId();
-      // Best effort: registration needs the network. If it fails, the first upload answers DEVICE_UNKNOWN and
-      // the connector registers again before retrying; nothing is purged.
-      await registerDevice(deviceId).catch(() => undefined);
       let database: PowerSyncDatabase;
       try {
         database = await openDatabase();
@@ -58,13 +55,21 @@ export default function ChwHome() {
         if (!cancelled) setFatal(true);
         return;
       }
-      await database.connect(
-        new SupabaseConnector(deviceId, {
-          onDeviceRevoked,
-          registerDevice: () => registerDevice(deviceId),
-        }),
-      );
-      if (!cancelled) setDb(database);
+      if (cancelled) return;
+      // Offline-first: the local list is shown now, whatever the network does (a stalled 2G request kept the
+      // spinner up for minutes on 2026-11-27). Registration and sync run in the background.
+      setDb(database);
+      // Best effort: if registration fails, the first upload answers DEVICE_UNKNOWN and the connector registers
+      // again before retrying; nothing is purged.
+      void registerDevice(deviceId).catch(() => undefined);
+      void database
+        .connect(
+          new SupabaseConnector(deviceId, {
+            onDeviceRevoked,
+            registerDevice: () => registerDevice(deviceId),
+          }),
+        )
+        .catch(() => undefined); // connection errors surface in the sync status on screen
     })();
     return () => {
       cancelled = true;

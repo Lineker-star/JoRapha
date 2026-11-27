@@ -17,7 +17,7 @@ import * as Crypto from 'expo-crypto';
 import { isAuthRefreshDiscardedError, isAuthRetryableFetchError } from '@supabase/supabase-js';
 
 import { config, syncIngestUrl } from '../config';
-import { supabase } from '../lib/supabase';
+import { fetchWithTimeout, supabase } from '../lib/supabase';
 import { classifyRefreshFailure, shouldRefresh } from '../lib/tokenPolicy';
 
 /** Anything that can run a statement: the database or an open write transaction. */
@@ -49,6 +49,7 @@ export class SessionInvalidError extends Error {
 }
 
 const MIN_REFRESH_INTERVAL_MS = 60_000;
+const uploadFetch = fetchWithTimeout(45_000);
 let lastIssuedToken: string | null = null;
 let lastRefreshAt: number | null = null;
 
@@ -170,7 +171,8 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
 
     let response: Response;
     try {
-      response = await fetch(syncIngestUrl, {
+      // A stalled upload is abandoned and retried; the server de-duplicates by idempotency key.
+      response = await uploadFetch(syncIngestUrl, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
