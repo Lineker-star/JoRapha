@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { isNetworkError } from '../lib/syncErrors';
 import { markListVisible } from '../metrics';
 import { setStatus } from '../powersync/connector';
 import { getCipherVersion } from '../powersync/database';
@@ -62,10 +63,14 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsFailed, setGpsFailed] = useState(false);
   const [invalid, setInvalid] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const [saveMs, setSaveMs] = useState<number | null>(null);
   // Measured once, when the list screen first renders.
   const [coldStartMs] = useState<number | null>(() => markListVisible());
-  const syncFailing = Boolean(status.downloadError ?? status.uploadError);
+  const syncError = status.downloadError ?? status.uploadError;
+  const syncFailing = Boolean(syncError);
+  // No network is normal in the field: a calm notice, not the red failure banner.
+  const offlineOnly = isNetworkError(syncError);
   const noCatchment = catchments.length === 0;
   const { data: queue } = useQuery<{ n: number }>('SELECT count(*) AS n FROM ps_crud');
   const queued = queue[0]?.n ?? 0;
@@ -106,27 +111,36 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
       return;
     }
     setInvalid(false);
+    setSaveFailed(false);
     const id = Crypto.randomUUID();
     const started = performance.now();
-    await db.writeTransaction(async (tx) => {
-      await tx.execute(
-        `INSERT INTO households (id, catchment_id, name_or_head, village, lat, lng, member_count, client_created_at, op_id)
+    try {
+      await db.writeTransaction(async (tx) => {
+        await tx.execute(
+          `INSERT INTO households (id, catchment_id, name_or_head, village, lat, lng, member_count, client_created_at, op_id)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          id,
-          catchmentId,
-          name.trim(),
-          village.trim() || null,
-          position?.lat ?? null,
-          position?.lng ?? null,
-          count,
-          new Date().toISOString(),
-          Crypto.randomUUID(),
-        ],
-      );
-      // Same transaction: a record can never exist locally without its "pending" state.
-      await setStatus(tx, id, 'pending', null, name.trim());
-    });
+          [
+            id,
+            catchmentId,
+            name.trim(),
+            village.trim() || null,
+            position?.lat ?? null,
+            position?.lng ?? null,
+            count,
+            new Date().toISOString(),
+            Crypto.randomUUID(),
+          ],
+        );
+        // Same transaction: a record can never exist locally without its "pending" state.
+        await setStatus(tx, id, 'pending', null, name.trim());
+      });
+    } catch (error) {
+      // Never fail silently: the CHW must know the record was NOT saved (the form keeps the values).
+      // Only the error message is logged, never the household's data.
+      console.warn('household save failed', error instanceof Error ? error.message : 'unknown');
+      setSaveFailed(true);
+      return;
+    }
     setSaveMs(Math.round(performance.now() - started));
     setName('');
     setVillage('');
@@ -164,7 +178,11 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
             <Text className="text-ink-600">
               {status.connected ? t('sync.online') : t('sync.offline')}
             </Text>
-            {syncFailing ? (
+            {syncFailing && offlineOnly ? (
+              <Text className="rounded-lg bg-ink-50 p-3 text-ink-900">
+                {t('sync.offlineNotice')}
+              </Text>
+            ) : syncFailing ? (
               <Text className="rounded-lg bg-red-50 p-3 text-red-900">{t('sync.failing')}</Text>
             ) : null}
             <Text className="text-ink-600">
@@ -239,6 +257,9 @@ export function HouseholdsScreen({ onSignOut }: { onSignOut: () => void }) {
                 </Text>
               </Pressable>
               {invalid ? <Text className="text-red-700">{t('chw.households.invalid')}</Text> : null}
+              {saveFailed ? (
+                <Text className="text-red-700">{t('chw.households.saveFailed')}</Text>
+              ) : null}
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ disabled: noCatchment }}

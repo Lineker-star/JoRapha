@@ -79,7 +79,8 @@
     "syncNow": "Synchroniser maintenant",
     "offline": "Hors connexion",
     "online": "En ligne",
-    "failing": "La synchronisation échoue : rien n’est envoyé ni reçu. Vos fiches restent sur ce téléphone, en attente, et seront envoyées dès que la synchronisation fonctionnera."
+    "failing": "La synchronisation échoue : rien n’est envoyé ni reçu. Vos fiches restent sur ce téléphone, en attente, et seront envoyées dès que la synchronisation fonctionnera.",
+    "offlineNotice": "Hors ligne : vos fiches sont conservées sur ce téléphone, en attente, et seront envoyées automatiquement au retour du réseau."
   },
   "chw": {
     "signIn": {
@@ -107,7 +108,8 @@
       "invalid": "Renseignez au moins le nom et le nombre de membres (0 à 100).",
       "memberCountValue": "Membres : {{count}}",
       "pendingSignOut": "{{count}} enregistrement(s) pas encore envoyé(s). Connectez-vous au réseau et attendez la synchronisation avant de vous déconnecter.",
-      "catchmentNotSynced": "Votre aire de responsabilité n’est pas encore téléchargée. Connectez-vous au réseau et attendez la première synchronisation avant d’ajouter des ménages."
+      "catchmentNotSynced": "Votre aire de responsabilité n’est pas encore téléchargée. Connectez-vous au réseau et attendez la première synchronisation avant d’ajouter des ménages.",
+      "saveFailed": "Non enregistré : la fiche n’a pas pu être stockée sur ce téléphone. Vos saisies sont conservées ; réessayez."
     },
     "metrics": {
       "title": "Mesures du test",
@@ -117,6 +119,7 @@
       "coldStartNotMeasured": "Démarrage jusqu’à la liste : non mesuré (connexion pendant cette session)"
     },
     "deviceRevoked": "Cet appareil a été révoqué. Les données locales ont été effacées.",
-    "encryptionMissing": "Chiffrement local inactif : l’application refuse de démarrer."
+    "encryptionMissing": "Chiffrement local inactif : l’application refuse de démarrer.",
+    "otherUserPending": "Ce téléphone contient encore des fiches non envoyées d’un autre agent de santé. Rendez-le-lui pour qu’il se connecte et synchronise, ou contactez votre superviseur. Rien n’est affiché ni envoyé en attendant."
   }
 }

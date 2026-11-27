@@ -40,3 +40,14 @@ export async function getDeviceId(): Promise<string> {
   await secureStorage.setItem(KEY_DEVICE, id);
   return id;
 }
+
+const KEY_DB_OWNER = 'jorapha.db.owner';
+
+/** The CHW (auth user id) the local database belongs to; null before the first sign-in recorded it. */
+export async function getDatabaseOwner(): Promise<string | null> {
+  return secureStorage.getItem(KEY_DB_OWNER);
+}
+
+export async function setDatabaseOwner(userId: string): Promise<void> {
+  await secureStorage.setItem(KEY_DB_OWNER, userId);
+}

@@ -79,7 +79,8 @@
     "syncNow": "Sync now",
     "offline": "Offline",
     "online": "Online",
-    "failing": "Sync is failing: nothing is being sent or received. Your records stay on this phone, marked pending, and will be sent once sync works again."
+    "failing": "Sync is failing: nothing is being sent or received. Your records stay on this phone, marked pending, and will be sent once sync works again.",
+    "offlineNotice": "Offline: your records are kept on this phone, marked pending, and will be sent automatically when the network returns."
   },
   "chw": {
     "signIn": {
@@ -107,7 +108,8 @@
       "invalid": "Enter at least the name and the number of members (0 to 100).",
       "memberCountValue": "Members: {{count}}",
       "pendingSignOut": "{{count}} record(s) not sent yet. Connect to the network and wait for sync before signing out.",
-      "catchmentNotSynced": "Your catchment has not downloaded yet. Connect to the network and wait for the first sync before adding households."
+      "catchmentNotSynced": "Your catchment has not downloaded yet. Connect to the network and wait for the first sync before adding households.",
+      "saveFailed": "Not saved: the record could not be stored on this phone. Your entries are kept; try again."
     },
     "metrics": {
       "title": "Spike measurements",
@@ -117,6 +119,7 @@
       "coldStartNotMeasured": "Start-up to list: not measured (signed in during this run)"
     },
     "deviceRevoked": "This device has been revoked. Local data has been erased.",
-    "encryptionMissing": "Local encryption is not active: the app refuses to start."
+    "encryptionMissing": "Local encryption is not active: the app refuses to start.",
+    "otherUserPending": "This phone still has records from another health worker that have not been sent. Give it back to them so they can connect and sync, or contact your supervisor. Nothing is shown or sent in the meantime."
   }
 }

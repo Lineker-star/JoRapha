@@ -80,6 +80,25 @@ reviewer — 3 should-fixes (download scope, idempotency mismatch, error mapping
 - **Gate before staging/production:** never use the PowerSync dashboard's automatic Supabase setup there; connect
   with a role created by migrations, and check the publication and role grants after connecting.
 
+### 3.6 First end-to-end run on the Android emulator (2026-11-27, build 8)
+
+Android 14 emulator, 2 GB RAM (`jorapha_spike`), EAS build b486d026 (spike profile). Not a substitute for the
+low-cost phone: timings below are indicative only.
+
+| Check                                     | Result                                                                                                                                                                                                      |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local encryption                          | SQLCipher 4.19.0 community active                                                                                                                                                                           |
+| Device registration                       | device 8ff94327… registered, `active`                                                                                                                                                                       |
+| Catchment download (sync rules)           | "Spike catchment Bertoua-Test (synthetic)" downloaded                                                                                                                                                       |
+| Save household `T0 01` (Koume, 4 members) | local save 7 ms; shown **Synced** within seconds                                                                                                                                                            |
+| Server                                    | `community.household` row 1, row_version 1, server `created_at` 04:42:58.998Z vs `client_created_at` 04:42:55.679Z, origin device 8ff94327…; `sync.operation` insert **applied**; device `last_sync_at` set |
+| Start-up to list (emulator)               | 4 957 ms (one sample; budget ≤ 5 000 ms p95 on the reference phone)                                                                                                                                         |
+
+Bugs found and fixed on the way (all in `fix/chw-token-refresh` / build 8): Babel plugin not declared (EAS
+bundling), PowerSync audience (dashboard), sync rules not deployed (dashboard), start-up blocked on the network,
+no request timeouts, token expiry judged by the device clock, sign-out/purge order, and household save failing
+silently (UPSERT on a PowerSync view).
+
 ## 4. Fault tests (run on the phone; record what you observe)
 
 Device: model ______ · Android ______ · RAM ______ · free storage ______ · app build ______ · date ______
@@ -93,19 +112,19 @@ select left(name_or_head, 3) as test, count(*), count(distinct name_or_head)
 from community.household where origin_device_id = '<device id>' group by 1 order by 1;
 ```
 
-| #   | Test                       | Steps                                                                                                                                                  | Expected                                                                                                                         | Observed | Pass? |
-| --- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | -------- | ----- |
-| 1   | Airplane mode × 20         | Airplane ON. Create `T1-01`…`T1-20` (some with GPS). Note "last local save" for every 5th. Airplane OFF.                                               | All 20 **pending** offline, notice counts 20; then **syncing → synced**. Server: 20 rows, 20 distinct.                           |          |       |
-| 2a  | Kill right after save      | Airplane ON. Create `T2-01`, then force-stop the app immediately (Settings → Apps → Force stop). Reopen.                                               | `T2-01` is listed as **pending** (never synced) after reopening.                                                                 |          |       |
-| 2b  | Kill mid-upload            | Airplane ON, create `T2-02`…`T2-11`. Airplane OFF and force-stop as soon as the first item shows **syncing**. Reopen, wait.                            | All 10 end **synced**; server exactly 10 (idempotent replay).                                                                    |          |       |
-| 3   | Same batch twice           | Airplane ON, create `T3-01`…`T3-03`. Airplane OFF; while items show **syncing**, airplane ON then OFF twice.                                           | Server exactly 3; no duplicates; none shown rejected. (Exact replay is proven by pgTAP.)                                         |          |       |
-| 4   | Device clock 2 days wrong  | Automatic time OFF, date 2 days **back**. Create `T4-01`, `T4-02` offline, reconnect. Then 2 days **ahead**: `T4-03`, `T4-04`. Restore automatic time. | Rows sync; server `created_at` = real server time, `client_created_at` = the wrong device time. Note any sign-in / token errors. |          |       |
-| 5   | Reboot with pending items  | Airplane ON, create `T5-01`…`T5-05`. Reboot the phone. Open the app (still offline). Then reconnect.                                                   | After reboot the 5 are **pending** (encrypted queue survived); after reconnecting **synced**.                                    |          |       |
-| 6   | Sign-out with pending      | Airplane ON, create `T6-01`. Tap **Sign out**.                                                                                                         | Sign-out is refused with the "not sent yet" message; `T6-01` still pending. Reconnect, let it sync, then sign out works.         |          |       |
-| 7   | Rejected path              | Airplane ON **first**, create `T7-01`. Then ask Claude to end the assignment on the server. Airplane OFF.                                              | `T7-01` shows **rejected — Outside your catchment**; never synced. Server: 0 rows for T7.                                        |          |       |
-| 8   | Unregistered device        | Ask Claude to note the device id, then (as part of 1) confirm the first sync after a fresh install works even with airplane mode on at first launch.   | First upload gets `DEVICE_UNKNOWN`, app registers, retries, items **synced**; nothing erased.                                    |          |       |
-| 9   | Revoked device, idle       | With nothing queued, ask Claude to revoke the device (`api.revoke_device`). Wait for the app to reconnect (or reopen it).                              | App shows "device revoked", local data erased, signed out — without any upload.                                                  |          |       |
-| 10  | Revoked device, with queue | Fresh sign-in on a new install, create `T10-01` offline, ask Claude to revoke, reconnect.                                                              | Upload refused `DEVICE_REVOKED`; local data erased; message shown.                                                               |          |       |
+| #   | Test                       | Steps                                                                                                                                                                                              | Expected                                                                                                                         | Observed | Pass? |
+| --- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------- | ----- |
+| 1   | Airplane mode × 20         | Airplane ON. Create `T1-01`…`T1-20` (some with GPS). Note "last local save" for every 5th. Airplane OFF.                                                                                           | All 20 **pending** offline, notice counts 20; then **syncing → synced**. Server: 20 rows, 20 distinct.                           |          |       |
+| 2a  | Kill right after save      | Airplane ON. Create `T2-01`, then force-stop the app immediately (Settings → Apps → Force stop). Reopen.                                                                                           | `T2-01` is listed as **pending** (never synced) after reopening.                                                                 |          |       |
+| 2b  | Kill mid-upload            | Airplane ON, create `T2-02`…`T2-11`. Airplane OFF and force-stop as soon as the first item shows **syncing**. Reopen, wait.                                                                        | All 10 end **synced**; server exactly 10 (idempotent replay).                                                                    |          |       |
+| 3   | Same batch twice           | Airplane ON, create `T3-01`…`T3-03`. Airplane OFF; while items show **syncing**, airplane ON then OFF twice.                                                                                       | Server exactly 3; no duplicates; none shown rejected. (Exact replay is proven by pgTAP.)                                         |          |       |
+| 4   | Device clock 2 days wrong  | Automatic time OFF, date 2 days **back**. Create `T4-01`, `T4-02` offline, reconnect. Then 2 days **ahead**: `T4-03`, `T4-04`. Restore automatic time.                                             | Rows sync; server `created_at` = real server time, `client_created_at` = the wrong device time. Note any sign-in / token errors. |          |       |
+| 5   | Reboot with pending items  | Airplane ON, create `T5-01`…`T5-05`. Reboot the phone. Open the app (still offline). Then reconnect.                                                                                               | After reboot the 5 are **pending** (encrypted queue survived); after reconnecting **synced**.                                    |          |       |
+| 6   | Sign-out with pending      | Airplane ON, create `T6-01`. Tap **Sign out**.                                                                                                                                                     | Sign-out is refused with the "not sent yet" message; `T6-01` still pending. Reconnect, let it sync, then sign out works.         |          |       |
+| 7   | Rejected path              | Airplane ON **first**, create `T7-01`. Then ask Claude to end the assignment on the server. Airplane OFF.                                                                                          | `T7-01` shows **rejected — Outside your catchment**; never synced. Server: 0 rows for T7.                                        |          |       |
+| 8   | Unregistered device        | Ask Claude to note the device id, then (as part of 1) confirm the first sync after a fresh install works even with airplane mode on at first launch.                                               | First upload gets `DEVICE_UNKNOWN`, app registers, retries, items **synced**; nothing erased.                                    |          |       |
+| 9   | Revoked device, idle       | With nothing queued, ask Claude to revoke the device (`api.revoke_device`). Wait for the app to reconnect (or reopen it).                                                                          | App shows "device revoked", local data erased, signed out — without any upload.                                                  |          |       |
+| 10  | Revoked device, with queue | fresh install (new device 45bc25ef…), T10 01 saved offline, device revoked via api.revoke_device, reconnect: upload refused **HTTP 403**, app signed out, local data erased, revoked message shown | 0 T10 rows                                                                                                                       | Pass     |
 
 Timings (performance budget, CLAUDE.md, p95 on a low-cost Android):
 
@@ -118,6 +137,50 @@ Timings (performance budget, CLAUDE.md, p95 on a low-cost Android):
 
 The on-screen start-up time starts when the JavaScript bundle runs; it does not include the native process
 start, hence the stopwatch row.
+
+### 4.1 Results on the Android emulator (2026-11-27, builds 8-14)
+
+Android 14 emulator, 2 GB RAM, synthetic data only. Server counts are by name prefix for device 8ff94327….
+The emulator is **not** the reference low-cost phone: timings are indicative, and §4 must still be run on a
+real phone before the ADR-002 decision.
+
+| #   | Test                             | On the device                                                                                                                 | Server                                                                 | Result           |
+| --- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------- |
+| 1   | Airplane mode × 20               | 20 pending offline (local saves 8-16 ms); all synced ~26 s after reconnecting                                                 | 20 rows, 20 distinct                                                   | Pass             |
+| 2a  | Kill right after save            | T2 01 still pending after force-stop and reopen                                                                               | included in T2 = 21                                                    | Pass             |
+| 2b  | Kill mid-upload                  | batches killed 2 s and 4 s after reconnecting; all synced after reopen                                                        | T2: 21 rows, 21 distinct                                               | Pass             |
+| 3   | Same batch twice                 | two airplane toggles during upload; all synced, none rejected                                                                 | 3 rows, no duplicates                                                  | Pass             |
+| 4   | Clock 2 days back / ahead        | build 8: **stuck "syncing"** with the clock back (token refresh blocked); fixed in build 9: synced ~20 s; ahead: synced ~57 s | 6 rows; server created_at = real time, client_created_at = device time | Pass (after fix) |
+| 5   | Reboot with pending              | 5 pending after reboot (offline); synced ~31 s after reconnecting                                                             | 5 rows                                                                 | Pass             |
+| 6   | Sign-out with pending            | refused with "1 record(s) not sent yet…"; record kept, then synced                                                            | 1 row                                                                  | Pass             |
+| 7   | Rejected path (assignment ended) | T7 01 **Rejected — Outside your catchment**; catchment and its households removed from the device; Save disabled              | 0 T7 rows; operation rejected NOT_IN_CATCHMENT                         | Pass             |
+| 8   | Unregistered device              | first registration and later re-registration worked; DEVICE_UNKNOWN path covered by pgTAP only                                | —                                                                      | Partial          |
+| 9   | Revoked device, idle             | on reopen: "This device has been revoked. Local data has been erased.", signed out, no upload                                 | device trust_status revoked (via api.revoke_device as the CHW)         | Pass             |
+| 10  | Revoked device, with queue       | pending (needs a fresh sign-in by the owner)                                                                                  |                                                                        | —                |
+| —   | Raw-key migration (build 13)     | installed offline over the passphrase build: re-keyed once, 3 queued records kept, then synced                                | TK: 3 rows                                                             | Pass             |
+
+Operation log after tests 1-7: 60 applied, 1 rejected (T7, NOT_IN_CATCHMENT), 0 conflicts, 0 duplicates.
+
+Timings (emulator; budget ≤ 5 000 ms p95 on the low-cost phone):
+
+| Metric                      | Before raw key (build 9) | After raw key (build 13/14) |
+| --------------------------- | ------------------------ | --------------------------- |
+| Cold start to list, offline | 6 013-8 289 ms           | 952, 1 227, 1 752 ms        |
+| Cold start to list, online  | 4 957-7 665 ms           | 2 064, 3 162 ms             |
+| First launch with migration | —                        | 12 464 ms (one-time re-key) |
+| Local save                  | 7-143 ms                 | 111 ms                      |
+
+Outliers: 14 030 ms on the first launch after a cold emulator boot while the host was heavily loaded (CPU ~66 %,
+RAM ~5.7 GB free).
+
+Open from the emulator run:
+
+- Build 13 once lost its stored session offline ~25 s after launch, with only retryable refresh errors logged;
+  build 14 logs auth events and app-initiated sign-outs to identify the cause if it recurs (not seen again in
+  build 14 so far).
+- "Online" and the offline notice can show together briefly after reconnecting (status vs last sync error).
+- The emulator's network stopped passing traffic after many airplane toggles (host fine); an emulator restart
+  fixed it. Not an app defect.
 
 ## 5. Problems, risks and gates before real data
 
@@ -142,6 +205,24 @@ start, hence the stopwatch row.
 8. **Network to the database.** PowerSync needs a direct replication connection; this machine saw intermittent
    database timeouts. Watch the PowerSync dashboard connection status during the tests.
 9. **A 403 FORBIDDEN** (e.g. suspended account) keeps the queue and shows the reason, retrying until resolved.
+
+10. **Another user signing in on the same phone.** Addressed 2026-11-27 (build 13): the local database records
+    its owner (CHW user id). A different CHW signing in gets the previous CHW's synced data wiped first; if the
+    previous CHW still has unsent records, the app shows nothing and syncs nothing until the phone is handed back
+    (`apps/chw/src/lib/storedSession.ts`, tested). Still to verify on a device with two test accounts.
+11. **Token expiry judged by the phone's clock.** supabase-js decides "expired" with the device clock; on
+    2026-11-27 PowerSync rejected a resumed emulator's token (PSYNC_S2103). The connector now refreshes with the
+    server when PowerSync asks again for a token it already had, or after a 401, at most once a minute
+    (`apps/chw/src/lib/tokenPolicy.ts`, tested). A refresh token the server rejects shows a sync error; a
+    "sign in again" screen is still needed.
+
+12. **Offline start with an expired token** showed the sign-in screen (supabase-js returns no session when the
+    refresh cannot reach the server). Fixed in build 13: "signed in" comes from the session stored on the phone.
+    Residual risk: a captive portal (paid Wi-Fi login page) answering the token refresh with a non-JSON error is
+    treated by supabase-js as a rejected refresh token, which signs the CHW out until they are online again.
+13. **Local database key** is now used as a SQLCipher raw key (no PBKDF2 per connection; owner approved
+    2026-11-27); existing databases switch once, decided by probing the file so an interrupted switch heals at
+    the next launch. A device test that kills the app during the switch (Maestro) is still to be written.
 
 ## 6. Recommendation for ADR-002
 

@@ -14,8 +14,12 @@ import {
 } from '@jorapha/sync';
 import * as Crypto from 'expo-crypto';
 
+import { isAuthRefreshDiscardedError, isAuthRetryableFetchError } from '@supabase/supabase-js';
+
 import { config, syncIngestUrl } from '../config';
-import { supabase } from '../lib/supabase';
+import { fetchWithTimeout } from '../lib/fetchWithTimeout';
+import { readStoredUserId, supabase } from '../lib/supabase';
+import { classifyRefreshFailure, shouldRefresh } from '../lib/tokenPolicy';
 
 /** Anything that can run a statement: the database or an open write transaction. */
 interface Executor {
@@ -29,13 +33,81 @@ export async function setStatus(
   reasonCode: string | null = null,
   label: string | null = null,
 ): Promise<void> {
+  // PowerSync exposes every table (local-only ones too) as a SQLite VIEW, and SQLite refuses
+  // INSERT … ON CONFLICT on a view: the upsert made every household save fail and roll back (emulator,
+  // 2026-11-27). Insert-if-missing then update works through the views' INSTEAD OF triggers.
+  const now = new Date().toISOString();
   await db.execute(
     `INSERT INTO household_sync_status (id, state, reason_code, label, updated_at)
-     VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET state = excluded.state, reason_code = excluded.reason_code,
-       label = coalesce(excluded.label, household_sync_status.label), updated_at = excluded.updated_at`,
-    [id, state, reasonCode, label, new Date().toISOString()],
+     SELECT ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM household_sync_status WHERE id = ?)`,
+    [id, state, reasonCode, label, now, id],
   );
+  await db.execute(
+    `UPDATE household_sync_status
+        SET state = ?, reason_code = ?, label = coalesce(?, label), updated_at = ?
+      WHERE id = ?`,
+    [state, reasonCode, label, now, id],
+  );
+}
+
+/** The refresh token was rejected by the server: the user must sign in again (the local queue is kept). */
+export class SessionInvalidError extends Error {
+  constructor() {
+    super('SESSION_INVALID');
+  }
+}
+
+const MIN_REFRESH_INTERVAL_MS = 60_000;
+const uploadFetch = fetchWithTimeout(45_000);
+let lastIssuedToken: string | null = null;
+let lastRefreshAt: number | null = null;
+
+/**
+ * Access token for PowerSync and sync-ingest. Refreshes with the server only when shouldRefresh says so
+ * (src/lib/tokenPolicy.ts): not on every call, never more than once a minute. Offline, the stored session is kept
+ * and the request is retried later. Returns null when signed out; throws SessionInvalidError when the server
+ * rejected the refresh token, so PowerSync reports a sync error instead of looping on an expired token.
+ */
+export async function accessToken(force = false): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  const stored = data.session?.access_token ?? null;
+  if (!stored) {
+    // Still signed in on this phone, but the expired token could not be refreshed (offline): retry later.
+    if (await readStoredUserId()) throw new Error('session not refreshed yet: offline');
+    return null;
+  }
+  const now = Date.now();
+  if (
+    !shouldRefresh({
+      storedToken: stored,
+      lastIssuedToken,
+      force,
+      now,
+      lastRefreshAt,
+      minIntervalMs: MIN_REFRESH_INTERVAL_MS,
+    })
+  ) {
+    lastIssuedToken = stored;
+    return stored;
+  }
+  lastRefreshAt = now;
+  const refreshed = await supabase.auth.refreshSession();
+  if (refreshed.data.session) {
+    console.warn('[auth] token refreshed');
+    lastIssuedToken = refreshed.data.session.access_token;
+    return lastIssuedToken;
+  }
+  const failure = refreshed.error
+    ? classifyRefreshFailure({
+        retryable: isAuthRetryableFetchError(refreshed.error),
+        discarded: isAuthRefreshDiscardedError(refreshed.error),
+      })
+    : 'keep-session';
+  console.warn(`[auth] token refresh failed: ${failure}`);
+  if (failure === 'session-invalid') throw new SessionInvalidError();
+  const { data: after } = await supabase.auth.getSession();
+  lastIssuedToken = after.session?.access_token ?? null;
+  return lastIssuedToken;
 }
 
 export interface ConnectorHooks {
@@ -50,6 +122,14 @@ export interface ConnectorHooks {
  * ONLY when the server answered every operation in it; every other outcome keeps the queue and retries, so
  * an acknowledged local record is never dropped by a server or network fault.
  */
+/**
+ * Diagnostics for the spike's fault tests: batch size and outcome only (HTTP status or error type), never
+ * household data (CLAUDE.md: no personal health data in logs).
+ */
+function logUpload(opCount: number, outcome: string): void {
+  console.warn(`[sync] upload of ${opCount} op(s): ${outcome}`);
+}
+
 export class SupabaseConnector implements PowerSyncBackendConnector {
   constructor(
     private readonly deviceId: string,
@@ -57,8 +137,9 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
   ) {}
 
   async fetchCredentials(): Promise<PowerSyncCredentials | null> {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) return null;
+    // PowerSync calls this on every (re)connect, including after a rejected token: always a fresh one.
+    const token = await accessToken();
+    if (!token) return null;
     // Download path: an idle revoked device must stop syncing too, not only on upload. Best effort when
     // offline; the server-side gate for real data is session revocation (report §5).
     const { data: device } = await supabase
@@ -71,7 +152,7 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
       this.hooks.onDeviceRevoked();
       return null;
     }
-    return { endpoint: config.powersyncUrl, token: data.session.access_token };
+    return { endpoint: config.powersyncUrl, token };
   }
 
   async uploadData(db: AbstractPowerSyncDatabase): Promise<void> {
@@ -106,14 +187,17 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
     const { data } = await supabase.auth.getSession();
     if (!data.session) {
       await backToPending();
-      throw new Error('not signed in');
+      throw new Error(
+        (await readStoredUserId()) ? 'session not refreshed yet: offline' : 'not signed in',
+      );
     }
 
     for (const op of ops) await setStatus(db, op.entity_id, 'syncing');
 
     let response: Response;
     try {
-      response = await fetch(syncIngestUrl, {
+      // A stalled upload is abandoned and retried; the server de-duplicates by idempotency key.
+      response = await uploadFetch(syncIngestUrl, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -123,8 +207,10 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
       });
     } catch (networkError) {
       await backToPending();
+      logUpload(ops.length, networkError instanceof Error ? networkError.name : 'network error');
       throw networkError;
     }
+    logUpload(ops.length, `HTTP ${response.status}`);
 
     if (response.status === 403) {
       const body = (await response.json().catch(() => ({}))) as { error?: string };
@@ -143,6 +229,8 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
     if (!response.ok) {
       // 400 (client bug), 401, 503 or anything else: keep the queue, retry later.
       await backToPending();
+      // 401: the token was expired by the server's clock; refresh so the retry does not loop on it.
+      if (response.status === 401) await accessToken(true).catch(() => null);
       throw new Error(`sync-ingest HTTP ${response.status}`);
     }
 
