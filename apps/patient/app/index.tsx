@@ -1,6 +1,7 @@
 import { shouldLock } from '@jorapha/domain';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
+import * as ScreenCapture from 'expo-screen-capture';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, AppState, Pressable, ScrollView, Text, View } from 'react-native';
@@ -23,6 +24,10 @@ export default function HomeScreen() {
   const [locked, setLocked] = useState<boolean | null>(null);
   const authEventSeen = useRef(false);
   const backgroundedAt = useRef<number | null>(null);
+  // Cached "lock on" so the re-lock decision is synchronous when the app comes back (no flash of data).
+  const lockEnabled = useRef(false);
+  // Covers the screen while the app is not in the foreground and the lock is on (app switcher, calls…).
+  const [covered, setCovered] = useState(false);
 
   useEffect(() => {
     void readStoredUserId().then((id) => {
@@ -38,34 +43,50 @@ export default function HomeScreen() {
     return () => data.subscription.unsubscribe();
   }, []);
 
+  const applyLockSetting = useCallback((enabled: boolean) => {
+    lockEnabled.current = enabled;
+    // With the lock on, no screenshots and no recent-apps preview of health data (Android FLAG_SECURE).
+    void (
+      enabled ? ScreenCapture.preventScreenCaptureAsync() : ScreenCapture.allowScreenCaptureAsync()
+    ).catch(() => undefined);
+  }, []);
+
   // Cold start: lock if the app lock is on.
   useEffect(() => {
     if (!userId) return;
-    void isLockEnabled().then((enabled) => setLocked(shouldLock(enabled, null, Date.now())));
-  }, [userId]);
+    void isLockEnabled().then((enabled) => {
+      applyLockSetting(enabled);
+      setLocked(shouldLock(enabled, null, Date.now()));
+    });
+  }, [userId, applyLockSetting]);
 
-  // Coming back after a while in the background: lock again.
+  // Coming back after a while in the background: lock again, synchronously, before anything is shown.
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
       if (state !== 'active') {
         backgroundedAt.current ??= Date.now();
+        setCovered(lockEnabled.current);
         return;
       }
       const at = backgroundedAt.current;
       backgroundedAt.current = null;
-      if (at === null) return;
-      void isLockEnabled().then((enabled) => {
-        if (shouldLock(enabled, at, Date.now())) setLocked(true);
-      });
+      if (at !== null && shouldLock(lockEnabled.current, at, Date.now())) setLocked(true);
+      setCovered(false);
     });
     return () => subscription.remove();
   }, []);
 
+  // Sign out FIRST, then remove the lock (security review): an interruption never leaves a session unlocked.
   const signOut = useCallback(() => {
-    void disableLock()
-      .then(() => supabase.auth.signOut({ scope: 'local' }))
-      .catch(() => undefined);
-  }, []);
+    void supabase.auth
+      .signOut({ scope: 'local' })
+      .catch(() => undefined)
+      .finally(() => {
+        void disableLock()
+          .then(() => applyLockSetting(false))
+          .catch(() => undefined);
+      });
+  }, [applyLockSetting]);
   const unlock = useCallback(() => setLocked(false), []);
 
   if (userId === undefined || (userId && locked === null)) {
@@ -77,6 +98,8 @@ export default function HomeScreen() {
   }
   if (!userId) return <SignInScreen linkError={linkError === '1'} />;
   if (locked) return <LockScreen onUnlocked={unlock} onTooManyAttempts={signOut} />;
+  // Not in the foreground (app switcher, incoming call…): show nothing until the lock decision is made.
+  if (covered) return <View className="flex-1 bg-white" />;
 
   const nextLanguage = i18n.language === 'fr' ? 'en' : 'fr';
   return (
@@ -96,7 +119,7 @@ export default function HomeScreen() {
             {t('mobile.patient.title')}
           </Text>
           <Text className="text-lg leading-7 text-ink-600">{t('mobile.patient.body')}</Text>
-          <SecuritySettings onSignOut={signOut} />
+          <SecuritySettings onSignOut={signOut} onLockChanged={applyLockSetting} />
           <Pressable
             accessibilityRole="button"
             onPress={() => void i18n.changeLanguage(nextLanguage)}

@@ -7,7 +7,13 @@ import { Field, Message, PrimaryButton, SecondaryButton } from '../components/ui
 import { biometricsAvailable, disableLock, enableLock, isLockEnabled } from '../lib/appLock';
 
 /** App lock on/off (PIN, optional biometrics) and sign out. */
-export function SecuritySettings({ onSignOut }: { onSignOut: () => void }) {
+export function SecuritySettings({
+  onSignOut,
+  onLockChanged,
+}: {
+  onSignOut: () => void;
+  onLockChanged: (enabled: boolean) => void;
+}) {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [canBiometrics, setCanBiometrics] = useState(false);
@@ -29,6 +35,7 @@ export function SecuritySettings({ onSignOut }: { onSignOut: () => void }) {
     setPin('');
     setConfirm('');
     setEnabled(true);
+    onLockChanged(true);
   }
 
   return (
@@ -41,7 +48,12 @@ export function SecuritySettings({ onSignOut }: { onSignOut: () => void }) {
           <Text className="text-ink-600">{t('mobile.auth.settings.lockOn')}</Text>
           <SecondaryButton
             label={t('mobile.auth.settings.disable')}
-            onPress={() => void disableLock().then(() => setEnabled(false))}
+            onPress={() =>
+              void disableLock().then(() => {
+                setEnabled(false);
+                onLockChanged(false);
+              })
+            }
           />
         </>
       ) : enabled === false ? (
