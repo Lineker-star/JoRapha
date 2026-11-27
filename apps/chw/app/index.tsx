@@ -37,13 +37,20 @@ export default function ChwHome() {
   }, []);
 
   // Only a confirmed revocation from the server purges local data (never an unknown or unreachable device).
+  // Sign out BEFORE purging: once the session is gone fetchCredentials returns null, so a connection still being
+  // set up cannot download data again into the cleared database.
   const onDeviceRevoked = useCallback(() => {
     setRevoked(true);
-    void purgeDatabase().then(() => supabase.auth.signOut());
+    void supabase.auth
+      .signOut({ scope: 'local' })
+      .finally(() => purgeDatabase())
+      .catch(() => undefined);
   }, []);
 
+  // Keyed on the user, not the session object: a routine token refresh must not reopen and reconnect.
+  const userId = session?.user.id ?? null;
   useEffect(() => {
-    if (!session) return;
+    if (!userId) return;
     let cancelled = false;
     void (async () => {
       const deviceId = await getDeviceId();
@@ -74,12 +81,13 @@ export default function ChwHome() {
     return () => {
       cancelled = true;
     };
-  }, [session, onDeviceRevoked]);
+  }, [userId, onDeviceRevoked]);
 
+  // The households screen allows this only when the upload queue is empty. Sign out first (see onDeviceRevoked).
   async function signOut() {
-    await purgeDatabase();
     setDb(null);
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+    await purgeDatabase();
   }
 
   if (fatal) {

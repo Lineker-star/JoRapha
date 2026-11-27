@@ -17,7 +17,8 @@ import * as Crypto from 'expo-crypto';
 import { isAuthRefreshDiscardedError, isAuthRetryableFetchError } from '@supabase/supabase-js';
 
 import { config, syncIngestUrl } from '../config';
-import { fetchWithTimeout, supabase } from '../lib/supabase';
+import { fetchWithTimeout } from '../lib/fetchWithTimeout';
+import { supabase } from '../lib/supabase';
 import { classifyRefreshFailure, shouldRefresh } from '../lib/tokenPolicy';
 
 /** Anything that can run a statement: the database or an open write transaction. */
