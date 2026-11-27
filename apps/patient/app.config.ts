@@ -14,9 +14,25 @@ const config: ExpoConfig = {
   android: {
     package: 'cm.jorapha.patient',
   },
-  plugins: ['expo-router', 'expo-localization'],
+  plugins: [
+    'expo-router',
+    'expo-localization',
+    'expo-secure-store',
+    [
+      'expo-local-authentication',
+      {
+        faceIDPermission:
+          "JoRapha utilise Face ID pour verrouiller l'application. / JoRapha uses Face ID to lock the app.",
+      },
+    ],
+  ],
   experiments: {
     typedRoutes: true,
+  },
+  extra: {
+    // Public values only (publishable key), bundled into the app.
+    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? '',
+    supabasePublishableKey: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '',
   },
 };
 

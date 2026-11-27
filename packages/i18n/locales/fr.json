@@ -49,7 +49,55 @@
       "body": "Bienvenue dans l'application JoRapha pour les agents de santé communautaire. Enregistrez vos visites, même sans réseau.",
       "imageAlt": "Un soignant en visite à domicile avec une tablette"
     },
-    "switchLanguage": "Switch to English"
+    "switchLanguage": "Switch to English",
+    "auth": {
+      "signIn": {
+        "title": "Connexion",
+        "intro": "Connectez-vous avec un code envoyé sur votre téléphone, ou un lien envoyé par e-mail.",
+        "byPhone": "Par téléphone",
+        "byEmail": "Par e-mail",
+        "phone": "Numéro de téléphone (Cameroun)",
+        "phoneHint": "Par exemple 6 70 00 00 00",
+        "sendCode": "Recevoir un code",
+        "codeSent": "Si ce numéro peut recevoir des SMS, un code à 6 chiffres arrive.",
+        "code": "Code à 6 chiffres",
+        "verify": "Valider",
+        "changeNumber": "Utiliser un autre numéro",
+        "email": "Adresse e-mail",
+        "sendLink": "Recevoir un lien de connexion",
+        "linkSent": "Si cette adresse peut recevoir des e-mails, un lien arrive. Ouvrez-le sur ce téléphone.",
+        "needsNetwork": "La connexion nécessite le réseau."
+      },
+      "errors": {
+        "invalidPhone": "Saisissez un numéro camerounais : 9 chiffres commençant par 6 ou 2.",
+        "invalidEmail": "Saisissez une adresse e-mail valide.",
+        "invalidCode": "Ce code n'est pas valide ou a expiré.",
+        "linkInvalid": "Ce lien n'est pas valide ou a déjà été utilisé. Demandez-en un nouveau.",
+        "tryAgain": "Une erreur est survenue. Réessayez dans un instant."
+      },
+      "lock": {
+        "title": "JoRapha est verrouillé",
+        "enterPin": "Saisissez votre code PIN",
+        "unlock": "Déverrouiller",
+        "useBiometrics": "Utiliser empreinte ou visage",
+        "biometricPrompt": "Déverrouiller JoRapha",
+        "wrongPin": "Code PIN incorrect.",
+        "tooMany": "Trop de tentatives incorrectes. Veuillez vous reconnecter."
+      },
+      "settings": {
+        "title": "Sécurité",
+        "lockOff": "Le verrouillage est désactivé.",
+        "lockOn": "Le verrouillage est activé.",
+        "choosePin": "Choisissez un code PIN (4 à 6 chiffres)",
+        "confirmPin": "Répétez le code PIN",
+        "weakPin": "Choisissez un code PIN qui ne soit ni répété ni une suite simple (1234, 0000…).",
+        "pinMismatch": "Les deux codes PIN sont différents.",
+        "biometrics": "Autoriser aussi empreinte ou visage",
+        "enable": "Activer le verrouillage",
+        "disable": "Désactiver le verrouillage",
+        "signOut": "Se déconnecter"
+      }
+    }
   },
   "sync": {
     "state": {

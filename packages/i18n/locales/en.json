@@ -49,7 +49,55 @@
       "body": "Welcome to the JoRapha community health worker app. Record your visits, even without a network.",
       "imageAlt": "A clinician on a home visit with a tablet"
     },
-    "switchLanguage": "Passer en français"
+    "switchLanguage": "Passer en français",
+    "auth": {
+      "signIn": {
+        "title": "Sign in",
+        "intro": "Sign in with a code sent to your phone, or a link sent to your e-mail.",
+        "byPhone": "By phone",
+        "byEmail": "By e-mail",
+        "phone": "Phone number (Cameroon)",
+        "phoneHint": "For example 6 70 00 00 00",
+        "sendCode": "Send me a code",
+        "codeSent": "If this number can receive SMS, a 6-digit code is on its way.",
+        "code": "6-digit code",
+        "verify": "Confirm",
+        "changeNumber": "Use another number",
+        "email": "E-mail address",
+        "sendLink": "Send me a sign-in link",
+        "linkSent": "If this address can receive e-mail, a link is on its way. Open it on this phone.",
+        "needsNetwork": "Signing in needs a network connection."
+      },
+      "errors": {
+        "invalidPhone": "Enter a Cameroon number: 9 digits starting with 6 or 2.",
+        "invalidEmail": "Enter a valid e-mail address.",
+        "invalidCode": "This code is not valid or has expired.",
+        "linkInvalid": "This link is not valid or has already been used. Please ask for a new one.",
+        "tryAgain": "Something went wrong. Please try again in a moment."
+      },
+      "lock": {
+        "title": "JoRapha is locked",
+        "enterPin": "Enter your PIN",
+        "unlock": "Unlock",
+        "useBiometrics": "Use fingerprint or face",
+        "biometricPrompt": "Unlock JoRapha",
+        "wrongPin": "Wrong PIN.",
+        "tooMany": "Too many wrong attempts. Please sign in again."
+      },
+      "settings": {
+        "title": "Security",
+        "lockOff": "App lock is off.",
+        "lockOn": "App lock is on.",
+        "choosePin": "Choose a PIN (4 to 6 digits)",
+        "confirmPin": "Repeat the PIN",
+        "weakPin": "Choose a PIN that is not a repeat or a simple sequence (1234, 0000…).",
+        "pinMismatch": "The two PINs are different.",
+        "biometrics": "Also allow fingerprint or face",
+        "enable": "Turn on app lock",
+        "disable": "Turn off app lock",
+        "signOut": "Sign out"
+      }
+    }
   },
   "sync": {
     "state": {
