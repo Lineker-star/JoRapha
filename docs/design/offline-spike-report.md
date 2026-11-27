@@ -143,6 +143,17 @@ start, hence the stopwatch row.
    database timeouts. Watch the PowerSync dashboard connection status during the tests.
 9. **A 403 FORBIDDEN** (e.g. suspended account) keeps the queue and shows the reason, retrying until resolved.
 
+10. **Another user signing in on the same phone.** When a session ends without the explicit Sign out (refresh
+    token rejected, signed out elsewhere), the local database and its queue stay. If a different CHW then signs in,
+    the previous CHW's unsynced writes would upload under the new account and their cached households would be
+    visible. Gate before real data: store the owner's user id with the database; a different user must not open
+    it (block, or require an explicit purge showing the unsynced count).
+11. **Token expiry judged by the phone's clock.** supabase-js decides "expired" with the device clock; on
+    2026-11-27 PowerSync rejected a resumed emulator's token (PSYNC_S2103). The connector now refreshes with the
+    server when PowerSync asks again for a token it already had, or after a 401, at most once a minute
+    (`apps/chw/src/lib/tokenPolicy.ts`, tested). A refresh token the server rejects shows a sync error; a
+    "sign in again" screen is still needed.
+
 ## 6. Recommendation for ADR-002
 
 **Pending device results.** Criteria for **GO**: tests 1, 2a, 2b, 4, 5 and 6 pass with no lost or duplicated

@@ -14,8 +14,11 @@ import {
 } from '@jorapha/sync';
 import * as Crypto from 'expo-crypto';
 
+import { isAuthRefreshDiscardedError, isAuthRetryableFetchError } from '@supabase/supabase-js';
+
 import { config, syncIngestUrl } from '../config';
 import { supabase } from '../lib/supabase';
+import { classifyRefreshFailure, shouldRefresh } from '../lib/tokenPolicy';
 
 /** Anything that can run a statement: the database or an open write transaction. */
 interface Executor {
@@ -38,6 +41,59 @@ export async function setStatus(
   );
 }
 
+/** The refresh token was rejected by the server: the user must sign in again (the local queue is kept). */
+export class SessionInvalidError extends Error {
+  constructor() {
+    super('SESSION_INVALID');
+  }
+}
+
+const MIN_REFRESH_INTERVAL_MS = 60_000;
+let lastIssuedToken: string | null = null;
+let lastRefreshAt: number | null = null;
+
+/**
+ * Access token for PowerSync and sync-ingest. Refreshes with the server only when shouldRefresh says so
+ * (src/lib/tokenPolicy.ts): not on every call, never more than once a minute. Offline, the stored session is kept
+ * and the request is retried later. Returns null when signed out; throws SessionInvalidError when the server
+ * rejected the refresh token, so PowerSync reports a sync error instead of looping on an expired token.
+ */
+export async function accessToken(force = false): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  const stored = data.session?.access_token ?? null;
+  if (!stored) return null;
+  const now = Date.now();
+  if (
+    !shouldRefresh({
+      storedToken: stored,
+      lastIssuedToken,
+      force,
+      now,
+      lastRefreshAt,
+      minIntervalMs: MIN_REFRESH_INTERVAL_MS,
+    })
+  ) {
+    lastIssuedToken = stored;
+    return stored;
+  }
+  lastRefreshAt = now;
+  const refreshed = await supabase.auth.refreshSession();
+  if (refreshed.data.session) {
+    lastIssuedToken = refreshed.data.session.access_token;
+    return lastIssuedToken;
+  }
+  const failure = refreshed.error
+    ? classifyRefreshFailure({
+        retryable: isAuthRetryableFetchError(refreshed.error),
+        discarded: isAuthRefreshDiscardedError(refreshed.error),
+      })
+    : 'keep-session';
+  if (failure === 'session-invalid') throw new SessionInvalidError();
+  const { data: after } = await supabase.auth.getSession();
+  lastIssuedToken = after.session?.access_token ?? null;
+  return lastIssuedToken;
+}
+
 export interface ConnectorHooks {
   /** Server confirmed the device is revoked: purge local data and sign out. */
   onDeviceRevoked: () => void;
@@ -57,8 +113,9 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
   ) {}
 
   async fetchCredentials(): Promise<PowerSyncCredentials | null> {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) return null;
+    // PowerSync calls this on every (re)connect, including after a rejected token: always a fresh one.
+    const token = await accessToken();
+    if (!token) return null;
     // Download path: an idle revoked device must stop syncing too, not only on upload. Best effort when
     // offline; the server-side gate for real data is session revocation (report §5).
     const { data: device } = await supabase
@@ -71,7 +128,7 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
       this.hooks.onDeviceRevoked();
       return null;
     }
-    return { endpoint: config.powersyncUrl, token: data.session.access_token };
+    return { endpoint: config.powersyncUrl, token };
   }
 
   async uploadData(db: AbstractPowerSyncDatabase): Promise<void> {
@@ -143,6 +200,8 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
     if (!response.ok) {
       // 400 (client bug), 401, 503 or anything else: keep the queue, retry later.
       await backToPending();
+      // 401: the token was expired by the server's clock; refresh so the retry does not loop on it.
+      if (response.status === 401) await accessToken(true).catch(() => null);
       throw new Error(`sync-ingest HTTP ${response.status}`);
     }
 
