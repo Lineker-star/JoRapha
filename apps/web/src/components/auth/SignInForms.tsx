@@ -14,6 +14,7 @@ import {
 } from '@/lib/auth/actions';
 
 import { Field, FormMessage, SubmitButton } from './FormParts';
+import { Turnstile } from './Turnstile';
 
 const empty: FormState = {};
 
@@ -34,6 +35,7 @@ function StaffForm({ locale, next }: { locale: Locale; next: string }) {
         required
       />
       {state.error ? <FormMessage tone="error">{t(`errors.${state.error}`)}</FormMessage> : null}
+      <Turnstile />
       <SubmitButton>{t('signIn.submit')}</SubmitButton>
       <Link
         href="/recover"
@@ -65,6 +67,7 @@ function PhoneForm({ locale, next }: { locale: Locale; next: string }) {
         {requested.error ? (
           <FormMessage tone="error">{t(`errors.${requested.error}`)}</FormMessage>
         ) : null}
+        <Turnstile />
         <SubmitButton>{t('signIn.sendCode')}</SubmitButton>
       </form>
     );
@@ -102,6 +105,7 @@ function EmailLinkForm({ locale, next }: { locale: Locale; next: string }) {
       <input type="hidden" name="next" value={next} />
       <Field label={t('signIn.email')} name="email" type="email" autoComplete="email" required />
       {state.error ? <FormMessage tone="error">{t(`errors.${state.error}`)}</FormMessage> : null}
+      <Turnstile />
       <SubmitButton>{t('signIn.sendLink')}</SubmitButton>
     </form>
   );

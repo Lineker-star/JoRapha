@@ -7,6 +7,7 @@ import { useActionState } from 'react';
 import { type FormState, requestPasswordReset, updatePassword } from '@/lib/auth/actions';
 
 import { Field, FormMessage, SubmitButton } from './FormParts';
+import { Turnstile } from './Turnstile';
 
 const empty: FormState = {};
 
@@ -20,6 +21,7 @@ export function RecoverForm({ locale }: { locale: Locale }) {
       <input type="hidden" name="locale" value={locale} />
       <Field label={t('signIn.email')} name="email" type="email" autoComplete="email" required />
       {state.error ? <FormMessage tone="error">{t(`errors.${state.error}`)}</FormMessage> : null}
+      <Turnstile />
       <SubmitButton>{t('recover.submit')}</SubmitButton>
     </form>
   );

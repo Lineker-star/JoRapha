@@ -50,6 +50,12 @@ async function siteOrigin(): Promise<string> {
 
 const email = z.string().trim().toLowerCase().email().max(254);
 
+/** Turnstile token from the form (absent when captcha is not configured); Supabase Auth verifies it. */
+function captchaOf(form: FormData): { captchaToken?: string } {
+  const token = form.get('captchaToken');
+  return typeof token === 'string' && token.length > 0 ? { captchaToken: token } : {};
+}
+
 /** Staff: e-mail + password, then MFA in the area gate. One generic error for any failure. */
 export async function signInWithPassword(_prev: FormState, form: FormData): Promise<FormState> {
   const locale = localeOf(form);
@@ -58,7 +64,10 @@ export async function signInWithPassword(_prev: FormState, form: FormData): Prom
     .safeParse({ email: form.get('email'), password: form.get('password') });
   if (!parsed.success) return { error: 'invalidCredentials' };
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { error } = await supabase.auth.signInWithPassword({
+    ...parsed.data,
+    options: captchaOf(form),
+  });
   if (error) return { error: 'invalidCredentials' };
   redirect(nextOf(form, locale));
   return {};
@@ -73,7 +82,10 @@ export async function requestEmailLink(_prev: FormState, form: FormData): Promis
   const next = encodeURIComponent(nextOf(form, locale));
   await supabase.auth.signInWithOtp({
     email: parsed.data,
-    options: { emailRedirectTo: `${await siteOrigin()}/${locale}/auth/callback?next=${next}` },
+    options: {
+      emailRedirectTo: `${await siteOrigin()}/${locale}/auth/callback?next=${next}`,
+      ...captchaOf(form),
+    },
   });
   return { sent: true };
 }
@@ -83,7 +95,7 @@ export async function requestPhoneOtp(_prev: FormState, form: FormData): Promise
   const phone = normalizeCameroonPhone(String(form.get('phone') ?? ''));
   if (!phone) return { error: 'invalidPhone' };
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.signInWithOtp({ phone });
+  const { error } = await supabase.auth.signInWithOtp({ phone, options: captchaOf(form) });
   if (error) return { error: 'tryAgain' };
   return { sent: true, phone };
 }
@@ -109,6 +121,7 @@ export async function requestPasswordReset(_prev: FormState, form: FormData): Pr
   const supabase = await createSupabaseServerClient();
   await supabase.auth.resetPasswordForEmail(parsed.data, {
     redirectTo: `${await siteOrigin()}/${locale}/auth/callback?next=${encodeURIComponent(`/${locale}/account/password`)}`,
+    ...captchaOf(form),
   });
   return { sent: true };
 }
