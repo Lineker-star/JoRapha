@@ -92,6 +92,63 @@ jobs:
       - name: Lint database
         run: supabase db lint --schema public,api,private,identity,patient,provider,scheduling,clinical,referral,lab,pharmacy,community,billing,content,audit,sync --level warning --fail-on error # extensions (PostGIS internals) excluded: third-party false positives
 
+  e2e-web:
+    name: End-to-end (web)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      # Placeholder SMS credentials for the LOCAL stack only: phone OTP works for the test number in
+      # supabase/config.toml [auth.sms.test_otp]; any real number fails to send. Not secrets.
+      SUPABASE_AUTH_SMS_TWILIO_ACCOUNT_SID: ACplaceholder
+      SUPABASE_AUTH_SMS_TWILIO_MESSAGE_SERVICE_SID: MGplaceholder
+      SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN: placeholder
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
+        with:
+          version: 3.2.0
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Start local Supabase (migrations + seed.sql, synthetic accounts)
+        run: supabase start -x studio,imgproxy,vector,logflare,supavisor,edge-runtime,realtime,storage-api,postgres-meta
+
+      - name: Point the web app at the local stack (local default keys, not secrets)
+        run: |
+          supabase status -o env > supabase.env
+          set -a; . ./supabase.env; set +a
+          echo "NEXT_PUBLIC_SUPABASE_URL=${API_URL}" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${PUBLISHABLE_KEY:-$ANON_KEY}" >> "$GITHUB_ENV"
+          rm supabase.env
+
+      - name: Build web
+        run: pnpm --filter web build
+
+      - name: Install Chromium for Playwright
+        run: pnpm --filter web exec playwright install --with-deps chromium
+
+      - name: Playwright
+        run: pnpm --filter web e2e
+
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-traces
+          path: apps/web/test-results
+          retention-days: 7
+
   gitleaks:
     name: Secrets (Gitleaks)
     runs-on: ubuntu-24.04

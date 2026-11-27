@@ -118,5 +118,87 @@
     },
     "deviceRevoked": "Cet appareil a été révoqué. Les données locales ont été effacées.",
     "encryptionMissing": "Chiffrement local inactif : l’application refuse de démarrer."
+  },
+  "auth": {
+    "header": {
+      "signIn": "Se connecter",
+      "account": "Mon compte"
+    },
+    "signIn": {
+      "title": "Connexion",
+      "staffTab": "Personnel de santé",
+      "patientTab": "Patient",
+      "staffIntro": "Cliniciens, personnel des structures et de la plateforme : e-mail et mot de passe, puis votre application d'authentification.",
+      "email": "Adresse e-mail",
+      "password": "Mot de passe",
+      "submit": "Se connecter",
+      "forgot": "Mot de passe oublié ?",
+      "patientIntro": "Connectez-vous avec un code envoyé sur votre téléphone, ou un lien envoyé par e-mail.",
+      "byPhone": "Par téléphone",
+      "byEmail": "Par e-mail",
+      "phone": "Numéro de téléphone (Cameroun)",
+      "phoneHint": "Par exemple 6 70 00 00 00",
+      "sendCode": "Recevoir un code",
+      "codeSent": "Si ce numéro peut recevoir des SMS, un code à 6 chiffres arrive.",
+      "code": "Code à 6 chiffres",
+      "verifyCode": "Valider",
+      "sendLink": "Recevoir un lien de connexion",
+      "linkSent": "Si cette adresse peut recevoir des e-mails, un lien de connexion arrive. Il ne fonctionne qu'une fois."
+    },
+    "mfa": {
+      "title": "Vérification en deux étapes",
+      "enrollIntro": "Les comptes du personnel de santé sont protégés par une application d'authentification (par exemple Google Authenticator ou Aegis).",
+      "start": "Configurer mon application d'authentification",
+      "scanQr": "Scannez ce code avec votre application d'authentification, puis saisissez le code à 6 chiffres affiché.",
+      "qrAlt": "QR code pour votre application d'authentification",
+      "secretLabel": "Impossible de scanner ? Saisissez cette clé :",
+      "challengeIntro": "Saisissez le code à 6 chiffres de votre application d'authentification.",
+      "code": "Code à 6 chiffres",
+      "verify": "Vérifier"
+    },
+    "recover": {
+      "title": "Réinitialiser votre mot de passe",
+      "intro": "Saisissez l'adresse e-mail de votre compte. Nous enverrons un lien pour choisir un nouveau mot de passe.",
+      "submit": "Envoyer le lien",
+      "sent": "Si un compte utilise cette adresse, un lien de réinitialisation arrive."
+    },
+    "password": {
+      "title": "Choisir un nouveau mot de passe",
+      "password": "Nouveau mot de passe (au moins 12 caractères)",
+      "confirm": "Répétez le nouveau mot de passe",
+      "submit": "Enregistrer le mot de passe"
+    },
+    "account": {
+      "title": "Mon compte",
+      "devices": "Mes appareils",
+      "devicesIntro": "Téléphones et tablettes enregistrés avec votre compte. En révoquer un arrête sa synchronisation et efface ses données locales à sa prochaine connexion.",
+      "noDevices": "Aucun appareil enregistré pour le moment.",
+      "app": "Application",
+      "platform": "Système",
+      "lastSync": "Dernière synchronisation",
+      "status": "Statut",
+      "never": "jamais",
+      "active": "Actif",
+      "revoked": "Révoqué",
+      "revoke": "Révoquer",
+      "sessions": "Sessions",
+      "signOut": "Se déconnecter",
+      "signOutEverywhere": "Se déconnecter partout",
+      "signOutEverywhereHint": "Met fin à vos sessions sur tous les navigateurs et appareils, y compris celui-ci."
+    },
+    "noAccess": {
+      "title": "Accès refusé",
+      "body": "Votre compte n'a pas accès à cet espace. Si vous pensez que c'est une erreur, contactez votre administrateur."
+    },
+    "errors": {
+      "invalidCredentials": "E-mail ou mot de passe incorrect.",
+      "invalidEmail": "Saisissez une adresse e-mail valide.",
+      "invalidPhone": "Saisissez un numéro camerounais : 9 chiffres commençant par 6 ou 2.",
+      "invalidCode": "Ce code n'est pas valide ou a expiré.",
+      "tryAgain": "Une erreur est survenue. Réessayez dans un instant.",
+      "passwordLength": "Le mot de passe doit contenir entre 12 et 200 caractères.",
+      "passwordMismatch": "Les deux mots de passe sont différents.",
+      "linkInvalid": "Ce lien n'est pas valide ou a déjà été utilisé. Demandez-en un nouveau."
+    }
   }
 }

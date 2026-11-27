@@ -48,3 +48,8 @@ pnpm-debug.log*
 
 # claude local settings
 .claude/settings.local.json
+
+# Playwright (apps/web)
+test-results/
+playwright-report/
+blob-report/

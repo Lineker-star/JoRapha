@@ -51,3 +51,22 @@ begin
   end loop;
 end
 $$;
+
+-- Step 2.1: roles for the synthetic accounts (identity.membership is what the access-token hook reads).
+-- The user_account rows are created by the on-insert trigger on auth.users (migration 0006).
+insert into provider.organization (id, kind, name, verification_status, verified_by, verified_at, status)
+values ('00000000-0000-4000-8000-0000000000a1', 'health_centre', 'Test Health Centre 001 (synthetic)',
+        'verified', '00000000-0000-4000-8000-000000000051', now(), 'active')
+on conflict (id) do nothing;
+
+insert into identity.membership (id, user_account_id, role, organization_id, granted_by)
+values
+  ('00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-000000000001', 'patient', null, null),
+  ('00000000-0000-4000-8000-0000000000b2', '00000000-0000-4000-8000-000000000021', 'clinician',
+   '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-000000000051'),
+  ('00000000-0000-4000-8000-0000000000b3', '00000000-0000-4000-8000-000000000031', 'chw',
+   '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-000000000051'),
+  ('00000000-0000-4000-8000-0000000000b4', '00000000-0000-4000-8000-000000000041', 'facility_admin',
+   '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-000000000051'),
+  ('00000000-0000-4000-8000-0000000000b5', '00000000-0000-4000-8000-000000000051', 'platform_admin', null, null)
+on conflict (id) do nothing;

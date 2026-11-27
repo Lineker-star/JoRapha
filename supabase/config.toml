@@ -168,7 +168,7 @@ site_url = "http://localhost:3000"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 additional_redirect_urls = ["http://localhost:3000/fr", "http://localhost:3000/en", "jorapha-patient://", "jorapha-chw://"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
-jwt_expiry = 3600
+jwt_expiry = 900
 # JWT issuer URL. If not set, defaults to auth.external_url.
 # jwt_issuer = ""
 # Path to JWT signing key. DO NOT commit your signing keys file to git.
@@ -267,9 +267,11 @@ otp_expiry = 3600
 [auth.sms]
 # Allow/disallow the phone provider. When false, users can't sign up or sign in with SMS.
 # To block new signups only, set enable_signup = false under [auth] instead.
-# PLACEHOLDER (ADR-005): phone OTP is the main patient sign-in. Enable in Step 2.1 once an SMS
-# provider is chosen; until then it stays off so no real SMS can be sent.
-enabled = false
+# Phone OTP is the main patient sign-in (Step 2.1). LOCAL STACK ONLY: enabled with placeholder Twilio
+# credentials (env, see below) so only the test number in [auth.sms.test_otp] can sign in; no real SMS can be
+# sent. Hosted projects keep SMS off until the SMS provider decision (ADR-008); this file's SMS settings are
+# never pushed to them before that.
+enabled = true
 # If enabled, users need to confirm their phone number before signing in.
 enable_confirmations = true
 # Template for sending OTP to users
@@ -280,8 +282,9 @@ max_frequency = "5s"
 
 # Use pre-defined map of phone number to OTP for testing.
 # Keys are the phone number with country code and without the + prefix.
-# [auth.sms.test_otp]
-# 14152127777 = "123456"
+# Synthetic Cameroon test number used by the Playwright sign-in test (Step 2.1). Never a real number.
+[auth.sms.test_otp]
+237650000001 = "123456"
 
 # Configure logged in session timeouts.
 # [auth.sessions]
@@ -301,8 +304,9 @@ enabled = true
 uri = "pg-functions://postgres/identity/custom_access_token_hook"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
+# Placeholder credentials only (CI sets SUPABASE_AUTH_SMS_TWILIO_* to dummy values): real numbers fail to send.
 [auth.sms.twilio]
-enabled = false
+enabled = true
 account_sid = "env(SUPABASE_AUTH_SMS_TWILIO_ACCOUNT_SID)"
 message_service_sid = "env(SUPABASE_AUTH_SMS_TWILIO_MESSAGE_SERVICE_SID)"
 # DO NOT commit your Twilio auth token to git. Use environment variable substitution instead:

@@ -3,6 +3,7 @@ import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
+import { AccountLink } from '@/components/auth/AccountLink';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { Link } from '@/i18n/navigation';
 import { resolveLocaleParam, type LocaleParams } from '@/i18n/params';
@@ -39,7 +40,10 @@ export default async function LocaleLayout({
               <Link href="/" className="text-lg font-semibold text-brand-700">
                 {t('common.appName')}
               </Link>
-              <LocaleSwitcher />
+              <div className="flex items-center gap-2">
+                <AccountLink />
+                <LocaleSwitcher />
+              </div>
             </div>
           </header>
           <main>{children}</main>

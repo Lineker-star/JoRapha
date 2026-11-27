@@ -118,5 +118,87 @@
     },
     "deviceRevoked": "This device has been revoked. Local data has been erased.",
     "encryptionMissing": "Local encryption is not active: the app refuses to start."
+  },
+  "auth": {
+    "header": {
+      "signIn": "Sign in",
+      "account": "My account"
+    },
+    "signIn": {
+      "title": "Sign in",
+      "staffTab": "Health staff",
+      "patientTab": "Patient",
+      "staffIntro": "Clinicians, facility and platform staff: e-mail and password, then your authenticator app.",
+      "email": "E-mail address",
+      "password": "Password",
+      "submit": "Sign in",
+      "forgot": "Forgot your password?",
+      "patientIntro": "Sign in with a code sent to your phone, or a link sent to your e-mail.",
+      "byPhone": "By phone",
+      "byEmail": "By e-mail",
+      "phone": "Phone number (Cameroon)",
+      "phoneHint": "For example 6 70 00 00 00",
+      "sendCode": "Send me a code",
+      "codeSent": "If this number can receive SMS, a 6-digit code is on its way.",
+      "code": "6-digit code",
+      "verifyCode": "Confirm",
+      "sendLink": "Send me a sign-in link",
+      "linkSent": "If this address can receive e-mail, a sign-in link is on its way. It works once."
+    },
+    "mfa": {
+      "title": "Two-step verification",
+      "enrollIntro": "Health staff accounts are protected by an authenticator app (for example Google Authenticator or Aegis).",
+      "start": "Set up my authenticator app",
+      "scanQr": "Scan this code with your authenticator app, then enter the 6-digit code it shows.",
+      "qrAlt": "QR code for your authenticator app",
+      "secretLabel": "Cannot scan? Enter this key instead:",
+      "challengeIntro": "Enter the 6-digit code from your authenticator app.",
+      "code": "6-digit code",
+      "verify": "Verify"
+    },
+    "recover": {
+      "title": "Reset your password",
+      "intro": "Enter the e-mail address of your account. We will send a link to choose a new password.",
+      "submit": "Send the link",
+      "sent": "If an account uses this address, a reset link is on its way."
+    },
+    "password": {
+      "title": "Choose a new password",
+      "password": "New password (at least 12 characters)",
+      "confirm": "Repeat the new password",
+      "submit": "Save the password"
+    },
+    "account": {
+      "title": "My account",
+      "devices": "My devices",
+      "devicesIntro": "Phones and tablets registered with your account. Revoking one stops its sync and erases its local data at its next connection.",
+      "noDevices": "No device registered yet.",
+      "app": "App",
+      "platform": "System",
+      "lastSync": "Last sync",
+      "status": "Status",
+      "never": "never",
+      "active": "Active",
+      "revoked": "Revoked",
+      "revoke": "Revoke",
+      "sessions": "Sessions",
+      "signOut": "Sign out",
+      "signOutEverywhere": "Sign out everywhere",
+      "signOutEverywhereHint": "Ends your sessions on every browser and device, including this one."
+    },
+    "noAccess": {
+      "title": "No access",
+      "body": "Your account does not have access to this area. If you think it should, contact your administrator."
+    },
+    "errors": {
+      "invalidCredentials": "E-mail or password incorrect.",
+      "invalidEmail": "Enter a valid e-mail address.",
+      "invalidPhone": "Enter a Cameroon number: 9 digits starting with 6 or 2.",
+      "invalidCode": "This code is not valid or has expired.",
+      "tryAgain": "Something went wrong. Please try again in a moment.",
+      "passwordLength": "The password must have between 12 and 200 characters.",
+      "passwordMismatch": "The two passwords are different.",
+      "linkInvalid": "This link is not valid or has already been used. Please ask for a new one."
+    }
   }
 }
