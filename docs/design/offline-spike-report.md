@@ -138,6 +138,50 @@ Timings (performance budget, CLAUDE.md, p95 on a low-cost Android):
 The on-screen start-up time starts when the JavaScript bundle runs; it does not include the native process
 start, hence the stopwatch row.
 
+### 4.1 Results on the Android emulator (2026-11-27, builds 8-14)
+
+Android 14 emulator, 2 GB RAM, synthetic data only. Server counts are by name prefix for device 8ff94327….
+The emulator is **not** the reference low-cost phone: timings are indicative, and §4 must still be run on a
+real phone before the ADR-002 decision.
+
+| #   | Test                             | On the device                                                                                                                 | Server                                                                 | Result           |
+| --- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------- |
+| 1   | Airplane mode × 20               | 20 pending offline (local saves 8-16 ms); all synced ~26 s after reconnecting                                                 | 20 rows, 20 distinct                                                   | Pass             |
+| 2a  | Kill right after save            | T2 01 still pending after force-stop and reopen                                                                               | included in T2 = 21                                                    | Pass             |
+| 2b  | Kill mid-upload                  | batches killed 2 s and 4 s after reconnecting; all synced after reopen                                                        | T2: 21 rows, 21 distinct                                               | Pass             |
+| 3   | Same batch twice                 | two airplane toggles during upload; all synced, none rejected                                                                 | 3 rows, no duplicates                                                  | Pass             |
+| 4   | Clock 2 days back / ahead        | build 8: **stuck "syncing"** with the clock back (token refresh blocked); fixed in build 9: synced ~20 s; ahead: synced ~57 s | 6 rows; server created_at = real time, client_created_at = device time | Pass (after fix) |
+| 5   | Reboot with pending              | 5 pending after reboot (offline); synced ~31 s after reconnecting                                                             | 5 rows                                                                 | Pass             |
+| 6   | Sign-out with pending            | refused with "1 record(s) not sent yet…"; record kept, then synced                                                            | 1 row                                                                  | Pass             |
+| 7   | Rejected path (assignment ended) | T7 01 **Rejected — Outside your catchment**; catchment and its households removed from the device; Save disabled              | 0 T7 rows; operation rejected NOT_IN_CATCHMENT                         | Pass             |
+| 8   | Unregistered device              | first registration and later re-registration worked; DEVICE_UNKNOWN path covered by pgTAP only                                | —                                                                      | Partial          |
+| 9   | Revoked device, idle             | on reopen: "This device has been revoked. Local data has been erased.", signed out, no upload                                 | device trust_status revoked (via api.revoke_device as the CHW)         | Pass             |
+| 10  | Revoked device, with queue       | pending (needs a fresh sign-in by the owner)                                                                                  |                                                                        | —                |
+| —   | Raw-key migration (build 13)     | installed offline over the passphrase build: re-keyed once, 3 queued records kept, then synced                                | TK: 3 rows                                                             | Pass             |
+
+Operation log after tests 1-7: 60 applied, 1 rejected (T7, NOT_IN_CATCHMENT), 0 conflicts, 0 duplicates.
+
+Timings (emulator; budget ≤ 5 000 ms p95 on the low-cost phone):
+
+| Metric                      | Before raw key (build 9) | After raw key (build 13/14) |
+| --------------------------- | ------------------------ | --------------------------- |
+| Cold start to list, offline | 6 013-8 289 ms           | 952, 1 227, 1 752 ms        |
+| Cold start to list, online  | 4 957-7 665 ms           | 2 064, 3 162 ms             |
+| First launch with migration | —                        | 12 464 ms (one-time re-key) |
+| Local save                  | 7-143 ms                 | 111 ms                      |
+
+Outliers: 14 030 ms on the first launch after a cold emulator boot while the host was heavily loaded (CPU ~66 %,
+RAM ~5.7 GB free).
+
+Open from the emulator run:
+
+- Build 13 once lost its stored session offline ~25 s after launch, with only retryable refresh errors logged;
+  build 14 logs auth events and app-initiated sign-outs to identify the cause if it recurs (not seen again in
+  build 14 so far).
+- "Online" and the offline notice can show together briefly after reconnecting (status vs last sync error).
+- The emulator's network stopped passing traffic after many airplane toggles (host fine); an emulator restart
+  fixed it. Not an app defect.
+
 ## 5. Problems, risks and gates before real data
 
 1. **Download scope is coarser than the write checks.** PowerSync parameter queries cannot compare dates or check
